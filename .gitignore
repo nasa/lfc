@@ -1,0 +1,32 @@
+# Python binaries
+*.py[co]
+__pycache__
+
+# Python build and distributions
+/build/
+/dist/
+/*.egg-info/
+
+# Autosaves and such
+*.asv
+*.swp
+~*
+*~
+*#
+
+
+# Python/C binaries
+/omlviz/build/
+*.o
+*.so
+
+# Sandbox foloders
+/sandbox/
+/scratch/
+
+# Releases
+/release/*.gz
+/release/*.zip
+
+# Database outputs
+/doc/_build
