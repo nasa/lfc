@@ -7,10 +7,10 @@ from setuptools import setup
 
 # Create the build
 setup(
-    name="slsconst",
+    name="tnas49",
     packages=[
-        "slsconst"
+        "tnas49"
     ],
-    description="Reference constants for Space Launch System aerodynamics",
+    description="Template repo for Python packages",
     version="1.0")
 
