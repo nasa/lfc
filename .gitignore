@@ -5,7 +5,8 @@ __pycache__
 # Python build and distributions
 /build/
 /dist/
-/*.egg-info/
+*.egg-info/
+*.dist-info/
 
 # Autosaves and such
 *.asv
