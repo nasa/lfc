@@ -1,0 +1,20 @@
+
+# Obvious temp files
+*~
+~*
+*#
+*lock
+
+# vi/vim swap files
+*.swp
+
+# Local VS code settings
+.vscode
+
+# Python objects
+*.py[oc]
+
+# Build folder
+_build/
+!_templates/
+

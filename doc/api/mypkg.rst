@@ -1,0 +1,4 @@
+
+.. automodule:: mypkg
+    :members:
+
