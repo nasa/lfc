@@ -8,6 +8,9 @@ __pycache__
 *.egg-info/
 *.dist-info/
 
+# Testing files
+.coverage
+
 # Autosaves and such
 *.asv
 *.swp
@@ -17,7 +20,6 @@ __pycache__
 
 
 # Python/C binaries
-/omlviz/build/
 *.o
 *.so
 
@@ -29,5 +31,5 @@ __pycache__
 /release/*.gz
 /release/*.zip
 
-# Database outputs
+# Documentation builds
 /doc/_build
