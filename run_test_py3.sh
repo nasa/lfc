@@ -7,7 +7,7 @@ print(find_packages()[0])")
 # Run tests
 python3 -m pytest \
     --pdb \
-    --report-log=test/log.json \
+    --junitxml=test/junit.xml \
     --cov=$PKG \
     --cov-report html:test/htmlcov 
 
