@@ -27,3 +27,12 @@ Links to built-in Python features
 
     https://docs.python.org/3/library/stdtypes.html#str
 
+.. class:: tuple
+
+    https://docs.python.org/3/library/stdtypes.html#tuple
+
+.. class:: file
+
+    * https://docs.python.org/3/library/io.html#io.TextIOBase
+    * https://docs.python.org/2/library/stdtypes.html#file-objects
+
