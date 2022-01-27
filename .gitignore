@@ -10,6 +10,9 @@ __pycache__
 
 # Testing files
 .coverage
+work/
+/test/junit.xml
+/test/log.json
 
 # Autosaves and such
 *.asv
