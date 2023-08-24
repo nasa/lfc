@@ -5,10 +5,21 @@
 from setuptools import setup, find_packages
 
 
+# Local software hub
+hub = "git+ssh://pfe/nobackupp16/ddalle/cape/hub/src/"
+
 # Create the build
 setup(
-    name="mypkg",
+    name="lfc",
     packages=find_packages(),
-    description="Template repo for Python packages",
-    version="1.0")
+    install_requires=[
+        "PyYAML",
+    ],
+    description="Git add-on for large file control",
+    entry_points={
+        "console_scripts": [
+            "lfc=lfc.cli:main"
+        ]
+    },
+    version="1.0.0-alpha1")
 
