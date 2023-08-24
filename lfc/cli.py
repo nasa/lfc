@@ -7,8 +7,8 @@ import sys
 import argread
 
 # Local imports
-from .giterror import GitutilsError
-from .gitrepo import GitRepo
+from .lfcerror import GitutilsError
+from .lfcrepo import LFCRepo
 
 
 # Help message
@@ -24,30 +24,30 @@ HELP_LFC = r"""GitUtils and Large File Control control (lfc)
 
 # Commands for ``lfc remote``
 CMD_REMOTE_DICT = {
-    "add": GitRepo.set_lfc_remote,
-    "list": GitRepo._print_lfc_remotes,
-    "ls": GitRepo._print_lfc_remotes,
-    "rm": GitRepo.rm_lfc_remote,
-    "set-url": GitRepo.set_lfc_remote,
+    "add": LFCRepo.set_lfc_remote,
+    "list": LFCRepo._print_lfc_remotes,
+    "ls": LFCRepo._print_lfc_remotes,
+    "rm": LFCRepo.rm_lfc_remote,
+    "set-url": LFCRepo.set_lfc_remote,
 }
 
 # Commands for ``lfc config``
 CMD_CONFIG_DICT = {
-    "get": GitRepo._print_lfc_config_get,
-    "set": GitRepo.lfc_config_set,
+    "get": LFCRepo._print_lfc_config_get,
+    "set": LFCRepo.lfc_config_set,
 }
 
 
 def lfc_add(*a, **kw):
     # Read the repo
-    repo = GitRepo()
+    repo = LFCRepo()
     # Add it
     repo.lfc_add(*a, **kw)
 
 
 def lfc_config(*a, **kw):
     # Read the repo
-    repo = GitRepo()
+    repo = LFCRepo()
     # Check command
     if len(a) < 1:
         print("lfc-config got %i arguments; at least 1 required" % len(a))
@@ -68,14 +68,14 @@ def lfc_config(*a, **kw):
 
 def lfc_init(*a, **kw):
     # Read the repo
-    repo = GitRepo()
+    repo = LFCRepo()
     # Push it
     repo.lfc_init(*a, **kw)
 
 
 def lfc_ls_files(*a, **kw):
     # Read the repo
-    repo = GitRepo()
+    repo = LFCRepo()
     # List files
     filelist = repo.find_lfc_files(*a, **kw)
     # Print them
@@ -84,21 +84,21 @@ def lfc_ls_files(*a, **kw):
 
 def lfc_pull(*a, **kw):
     # Read the repo
-    repo = GitRepo()
+    repo = LFCRepo()
     # Push it
     repo.lfc_pull(*a, **kw)
 
 
 def lfc_push(*a, **kw):
     # Read the repo
-    repo = GitRepo()
+    repo = LFCRepo()
     # Push it
     repo.lfc_push(*a, **kw)
 
 
 def lfc_remote(*a, **kw):
     # Read the repo
-    repo = GitRepo()
+    repo = LFCRepo()
     # Check command
     if len(a) < 1:
         print("lfc-remote got %i arguments; at least 1 required" % len(a))
@@ -119,14 +119,14 @@ def lfc_remote(*a, **kw):
 
 def lfc_replace_dvc(*a, **kw):
     # Read the repo
-    repo = GitRepo()
+    repo = LFCRepo()
     # Replace
     repo.lfc_replace_dvc(*a, **kw)
 
 
 def lfc_show(*a, **kw):
     # Read the repo
-    repo = GitRepo()
+    repo = LFCRepo()
     # Check if *a* has exactly one file
     if len(a) != 1:
         print("lfc-show got %i arguments; expected %i" % (len(a), 1))

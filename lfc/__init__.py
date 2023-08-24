@@ -1,6 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+r"""
+``lfc``: Python git add-on to handle large files
+===========================================================
 
+"""
 
 # Local imports
 from .lfcrepo import LFCRepo
