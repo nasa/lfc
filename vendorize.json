@@ -1,11 +1,10 @@
 {
-    "target": "gitutils/_vendor",
+    "target": "lfc/_vendor",
     "hub": [
         "git+ssh://pfe/nobackupp16/ddalle/cape/hub/src",
         "git+ssh://linux252/nobackup/ddalle/cape/hub/src"
     ],
     "packages": [
-        "argread",
-        "shellutils"
+        "gitutils"
     ]
 }
