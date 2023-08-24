@@ -2,9 +2,9 @@
     "gitutils": {
         "url": "ssh://pfe/nobackupp16/ddalle/cape/hub/src/gitutils.git",
         "vcs_info": {
-            "commit_id": "80aa841735144a64a6bcf0bd2b68dad2a57f516b",
+            "commit_id": "06fb5e4c98214d27ca94b8d9e08cc54eb5d8cbe9",
             "vcs": "git"
         },
-        "version": " 1.0.0b7"
+        "version": " 1.0.0b8"
     }
 }

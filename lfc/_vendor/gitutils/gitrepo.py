@@ -85,6 +85,7 @@ class GitRepo(object):
             Interface to git repository
     :Versions:
         * 2022-12-21 ``@ddalle``: v1.0
+        * 2023-08-24 ``@ddalle``: v2.0; remove LFC methods
     """
    # --- Class attributes ---
     # Class attributes
