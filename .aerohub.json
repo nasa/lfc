@@ -1,0 +1,4 @@
+{
+    "Title": "Python package lfc (Large File Control)",
+    "Description": "Large-file add-on for git, now separate from gitutils pkg"
+}
