@@ -209,11 +209,11 @@ class LFCRepo(GitRepo):
     def _lfc_add(self, fname):
         # Strip .dvc if necessary
         fname = self.genr8_lfc_ofilename(fname)
-        fdvc = self.genr8_lfc_filename(fname)
+        flfc = self.genr8_lfc_filename(fname)
         # Make sure main file is ignored
         self._ignore(fname)
         # Check cache status
-        if os.path.isfile(fdvc) and self.check_status(fdvc):
+        if os.path.isfile(flfc) and self.check_status(flfc):
             print("File up to date: '%s'" % fname)
             return
         # Status update
@@ -227,7 +227,7 @@ class LFCRepo(GitRepo):
         finfo = os.stat(fname)
         fsize = finfo.st_size
         # Write DVC file
-        with open(fdvc, "w") as fp:
+        with open(flfc, "w") as fp:
             fp.write("outs:\n")
             fp.write("- sha256: %s\n" % fhash)
             fp.write("  size: %i\n" % fsize)
@@ -249,7 +249,7 @@ class LFCRepo(GitRepo):
         # Copy file
         shutil.copy(fname, fcache)
         # Add the stub
-        self._add(fdvc)
+        self._add(flfc)
 
     def genr8_hash(self, fname):
         r"""Calculate SHA-256 hex digest of a file
@@ -700,15 +700,15 @@ class LFCRepo(GitRepo):
         raise GitutilsSystemError("No matches for pattern '%s'" % fpat)
 
    # --- LFC status ---
-    def check_status(self, fdvc):
+    def check_status(self, flfc):
         r"""Check if the LFC status of a large file is up-to-odate
 
         :Call:
-            >>> status = repo.check_status(fdvc)
+            >>> status = repo.check_status(flfc)
         :Inputs:
             *repo*: :class:`GitRepo`
                 Interface to git repository
-            *fdvc*: :class:`str`
+            *flfc*: :class:`str`
                 Name of file
         :Outputs:
             *status*: ``True`` | ``False``
@@ -717,14 +717,14 @@ class LFCRepo(GitRepo):
             * 2022-12-28 ``@ddalle``: v1.0
         """
         # Get info
-        dvcinfo = self.read_lfc_file(fdvc)
+        dvcinfo = self.read_lfc_file(flfc)
         # Get file name
         fname = dvcinfo.get("path")
         # Check if file present
         if not os.path.isfile(fname):
             return False
         # Get file infos
-        dinfo = os.stat(fdvc)
+        dinfo = os.stat(flfc)
         finfo = os.stat(fname)
         # Check if *fname* is newer
         if finfo.st_mtime > dinfo.st_mtime:
@@ -732,11 +732,11 @@ class LFCRepo(GitRepo):
         # Check cache
         return self._check_cache(dvcinfo)
 
-    def check_cache(self, fname):
+    def check_cache(self, flfc: str):
         r"""Check if large file is in local cache
 
         :Call:
-            >>> status = repo.check_cache(fdvc)
+            >>> status = repo.check_cache(flfc)
         :Inputs:
             *repo*: :class:`GitRepo`
                 Interface to git repository
@@ -749,7 +749,7 @@ class LFCRepo(GitRepo):
             * 2022-12-28 ``@ddalle``: v1.0
         """
         # Get info
-        dvcinfo = self.read_lfc_file(fname)
+        dvcinfo = self.read_lfc_file(flfc)
         # Check cache
         return self._check_cache(dvcinfo)
 
