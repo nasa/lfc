@@ -214,7 +214,9 @@ class LFCRepo(GitRepo):
         self._ignore(fname)
         # Check cache status
         if os.path.isfile(flfc) and self.check_status(flfc):
+            # Status update
             print("File up to date: '%s'" % fname)
+            # Stub already added
             return
         # Status update
         sys.stdout.write("Calculating hash: '%s'" % fname)
@@ -244,10 +246,11 @@ class LFCRepo(GitRepo):
                 os.mkdir(_f)
         # Check for existing cache
         if os.path.isfile(fcache):
+            # Status update
             print("File already in cache")
-            return
-        # Copy file
-        shutil.copy(fname, fcache)
+        else:
+            # Copy file into cache
+            shutil.copy(fname, fcache)
         # Add the stub
         self._add(flfc)
 
