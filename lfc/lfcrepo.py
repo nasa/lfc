@@ -23,6 +23,7 @@ from configparser import ConfigParser
 import yaml
 
 # Local imports
+from .lfcerror import LFCCheckoutError
 from ._vendor.gitutils._vendor import shellutils
 from ._vendor.gitutils.giterror import (
     GitutilsKeyError,
@@ -206,7 +207,7 @@ class LFCRepo(GitRepo):
             for fj in fglob:
                 self._lfc_add(fj)
 
-    def _lfc_add(self, fname):
+    def _lfc_add(self, fname: str):
         # Strip .dvc if necessary
         fname = self.genr8_lfc_ofilename(fname)
         flfc = self.genr8_lfc_filename(fname)
@@ -228,7 +229,7 @@ class LFCRepo(GitRepo):
         # We need the size of the file, too
         finfo = os.stat(fname)
         fsize = finfo.st_size
-        # Write DVC file
+        # Write LFC metadata stub file
         with open(flfc, "w") as fp:
             fp.write("outs:\n")
             fp.write("- sha256: %s\n" % fhash)
@@ -254,7 +255,7 @@ class LFCRepo(GitRepo):
         # Add the stub
         self._add(flfc)
 
-    def genr8_hash(self, fname):
+    def genr8_hash(self, fname: str):
         r"""Calculate SHA-256 hex digest of a file
 
         :Call:
@@ -306,7 +307,7 @@ class LFCRepo(GitRepo):
             for fj in fglob:
                 self._lfc_push(fj, remote)
 
-    def _lfc_push(self, fname, remote=None):
+    def _lfc_push(self, fname: str, remote=None):
         # Get info
         lfcinfo = self.read_lfc_file(fname)
         # Get name of original file name (for progress indicator)
@@ -402,11 +403,11 @@ class LFCRepo(GitRepo):
             for fj in fglob:
                 self._lfc_pull(fj, remote)
 
-    def _lfc_pull(self, fname, remote=None):
+    def _lfc_pull(self, fname: str, remote=None):
         self._lfc_fetch(fname, remote)
         self._lfc_checkout(fname)
 
-    def _lfc_fetch(self, fname, remote=None):
+    def _lfc_fetch(self, fname: str, remote=None):
         # Get info
         lfcinfo = self.read_lfc_file(fname)
         # Get original file name
@@ -477,7 +478,58 @@ class LFCRepo(GitRepo):
         # Copy file
         shutil.copy(fsrc, ftarg)
 
-    def _lfc_checkout(self, fname):
+   # --- LFC checkout --
+    def lfc_checkout(self, *fnames, **kw):
+        r"""Checkout one or more large files from current ``.lfc`` stub
+
+        :Call:
+            >>> repo.lfc_checkout(*fnames, **kw)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *fnames*: :class:`tuple`\ [:class:`str`]
+                Names or wildcard patterns of files
+        :Versions:
+            * 2023-10-24 ``@ddalle``: v1.0
+        """
+        # Loop through files
+        for fname in fnames:
+            # Expand
+            fglob = self._genr8_lfc_glob(fname)
+            # Loop through matches
+            for fj in fglob:
+                self._lfc_checkout_cli(fj)
+
+    def _lfc_checkout_cli(self, fname: str):
+        # Strip .lfc if necessary
+        fname = self.genr8_lfc_ofilename(fname)
+        # Add the extension
+        flfc = self.genr8_lfc_filename(fname)
+        # Read metadata
+        lfcinfo = self.read_lfc_file(flfc)
+        # Unpack hash
+        fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
+        # Get path to cache
+        cachedir = self.get_cachedir()
+        # Check for existing file
+        if os.path.isfile(fname):
+            # Calculate hash of existing file
+            hash1 = self.genr8_hash(fname)
+            # Check if it's the same file
+            if hash1 == fhash:
+                return
+            # Generate cache file name for existing file
+            fcache1 = os.path.join(cachedir, fhash[:2], fhash[2:])
+            # Check if file is present
+            if not os.path.isfile(fcache1):
+                raise LFCCheckoutError(
+                    f"Cannot checkout '{fname}'; existing file not in cache")
+            # Otherwise delete existing file
+            os.remove(fname)
+        # Copy cache file to working file
+        shutil.copy(fhash, fname)
+
+    def _lfc_checkout(self, fname: str):
         # Strip .lfc if necessary
         fname = self.genr8_lfc_ofilename(fname)
         # Get info
@@ -919,7 +971,7 @@ class LFCRepo(GitRepo):
         # Length of current name
         l0 = len(fname)
         # Max width allowed (right now)
-        maxwidth = os.get_terminal_size().columns - n
+        maxwidth = shutil.get_terminal_size().columns - n
         # Check if truncation needed
         if l0 < maxwidth:
             # Use existing name

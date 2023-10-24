@@ -12,3 +12,12 @@ specifically raised by this package
 
 # Local imports
 from ._vendor.gitutils.giterror import GitutilsError
+
+
+# Error for loss of info from checkout
+class LFCCheckoutError(SystemError, GitutilsError):
+    r"""Error class for lfc-checkout commands
+
+    Usually raised if an ``lfc checkout`` would delete an actual large
+    file that is not in the cache"""
+    pass

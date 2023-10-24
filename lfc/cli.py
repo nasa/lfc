@@ -89,6 +89,13 @@ def lfc_pull(*a, **kw):
     repo.lfc_pull(*a, **kw)
 
 
+def lfc_checkout(*a, **kw):
+    # Read the repo
+    repo = LFCRepo()
+    # Checkout
+    repo.lfc_checkout(*a, **kw)
+
+
 def lfc_push(*a, **kw):
     # Read the repo
     repo = LFCRepo()
@@ -143,6 +150,7 @@ def lfc_show(*a, **kw):
 # Command dictionary
 CMD_DICT = {
     "add": lfc_add,
+    "checkout": lfc_checkout,
     "config": lfc_config,
     "init": lfc_init,
     "ls-files": lfc_ls_files,
