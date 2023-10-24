@@ -305,18 +305,18 @@ class LFCRepo(GitRepo):
 
     def _lfc_push(self, fname, remote=None):
         # Get info
-        dvcinfo = self.read_lfc_file(fname)
+        lfcinfo = self.read_lfc_file(fname)
         # Get name of original file name (for progress indicator)
         flarge = self.genr8_lfc_ofilename(fname)
         # Check if file is in the cache
-        if not self._check_cache(dvcinfo):
+        if not self._check_cache(lfcinfo):
             # Truncate long file names
             f1 = self._trunc8_fname(flarge, 31)
             # Status
             print("File '%s' is not in local cache" % f1)
             return
         # Unpack MD5 hash
-        fhash = dvcinfo.get("sha256", dvcinfo.get("md5"))
+        fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
         # Get remote location
         fremote = self.get_lfc_remote_url(remote)
         # Check remote/local
@@ -405,11 +405,11 @@ class LFCRepo(GitRepo):
 
     def _lfc_fetch(self, fname, remote=None):
         # Get info
-        dvcinfo = self.read_lfc_file(fname)
+        lfcinfo = self.read_lfc_file(fname)
         # Get original file name
         flarge = self.genr8_lfc_ofilename(fname)
         # Unpack MD5 hash
-        fhash = dvcinfo.get("sha256", dvcinfo.get("md5"))
+        fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
         # Get cache file name
         fcache = os.path.join(self.get_cachedir(), fhash[:2], fhash[2:])
         # Check if file is present in the cache
@@ -478,9 +478,9 @@ class LFCRepo(GitRepo):
         # Strip .lfc if necessary
         fname = self.genr8_lfc_ofilename(fname)
         # Get info
-        dvcinfo = self.read_lfc_file(fname)
+        lfcinfo = self.read_lfc_file(fname)
         # Unpack MD5 hash
-        fhash = dvcinfo.get("sha256", dvcinfo.get("md5"))
+        fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
         # Get cache file name
         fcache = os.path.join(self.get_cachedir(), fhash[:2], fhash[2:])
         # Check if file is present in the cache
@@ -717,9 +717,9 @@ class LFCRepo(GitRepo):
             * 2022-12-28 ``@ddalle``: v1.0
         """
         # Get info
-        dvcinfo = self.read_lfc_file(flfc)
+        lfcinfo = self.read_lfc_file(flfc)
         # Get file name
-        fname = dvcinfo.get("path")
+        fname = lfcinfo.get("path")
         # Check if file present
         if not os.path.isfile(fname):
             return False
@@ -730,7 +730,7 @@ class LFCRepo(GitRepo):
         if finfo.st_mtime > dinfo.st_mtime:
             return False
         # Check cache
-        return self._check_cache(dvcinfo)
+        return self._check_cache(lfcinfo)
 
     def check_cache(self, flfc: str):
         r"""Check if large file is in local cache
@@ -749,19 +749,19 @@ class LFCRepo(GitRepo):
             * 2022-12-28 ``@ddalle``: v1.0
         """
         # Get info
-        dvcinfo = self.read_lfc_file(flfc)
+        lfcinfo = self.read_lfc_file(flfc)
         # Check cache
-        return self._check_cache(dvcinfo)
+        return self._check_cache(lfcinfo)
 
-    def _check_cache(self, dvcinfo):
+    def _check_cache(self, lfcinfo):
         # Get cache file
-        fhashabs = self._get_cachefile(dvcinfo)
+        fhashabs = self._get_cachefile(lfcinfo)
         # Check if it's there
         return os.path.isfile(fhashabs)
 
-    def _get_cachefile(self, dvcinfo):
+    def _get_cachefile(self, lfcinfo):
         # Get hash
-        fhash = dvcinfo.get("sha256", dvcinfo.get("md5"))
+        fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
         # Assert type
         assert_isinstance(fhash, str, "file hash")
         # Get path to cache folder
