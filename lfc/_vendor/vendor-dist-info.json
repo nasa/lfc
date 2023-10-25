@@ -1,8 +1,8 @@
 {
     "gitutils": {
-        "url": "ssh://pfe/nobackupp16/ddalle/cape/hub/src/gitutils.git",
+        "url": "ssh://linux252/nobackup/ddalle/cape/hub/src/gitutils.git",
         "vcs_info": {
-            "commit_id": "8a3091a9e9c160268b8b6c3ad377408326f4626b",
+            "commit_id": "ce7c320d945f28aa7ecceb0365f3d2891ce40e70",
             "vcs": "git"
         },
         "version": " 1.0.4"

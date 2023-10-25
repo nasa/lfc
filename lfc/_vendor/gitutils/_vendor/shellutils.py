@@ -57,10 +57,10 @@ _FILENAME_CHAR_DENYLIST = frozenset(
     '/"\\|:*?<>,;=' +
     bytes(list(range(32)) + [127]).decode("ascii"))
 _DIRNAME_CHAR_DENYLIST = frozenset(
-    '"\\|:*?<>,;=' +
+    '"|:*?<>,;=' +
     bytes(list(range(32)) + [127]).decode("ascii"))
 _GLOBNAME_CHAR_DENYLIST = frozenset(
-    '"\\|:<>,;=' +
+    '"|:<>,;=' +
     bytes(list(range(32)) + [127]).decode("ascii"))
 
 # Only show progress (by default) if STDOUT connected to a terminal
@@ -1586,6 +1586,8 @@ def validate_dirname(fdir: str, sep='/'):
     """
     # Get base file name
     fbase = fdir.split(sep)[-1]
+    # Check base name
+    _check_str_denylist(fbase, _FILENAME_CHAR_DENYLIST, "folder name")
     # Check length
     _check_fname_len(fbase)
     # On windows, files cannot end with "."
