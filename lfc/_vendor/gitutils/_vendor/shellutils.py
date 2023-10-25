@@ -44,7 +44,7 @@ SLEEP_PROGRESS = 0.1
 N_TIMEOUT = 100
 
 # Regular expression for deciding if a path is local
-REGEX_HOST = re.compile(r"((?P<host>[A-Za-z][A-Za-z-.]+):)?(?P<path>.+)$")
+REGEX_HOST = re.compile(r"((?P<host>[A-Za-z][A-Za-z0-9-.]+):)?(?P<path>.+)$")
 
 
 # Standard messages
@@ -1100,7 +1100,7 @@ class SSH(SSHBase):
                     return 0
                 else:
                     # Save any other STDOUT we got
-                    self._save_stdout(txt)  # pragma no cover
+                    self._save_stdout(txt)
             # Sleep before trying again
             time.sleep(dt)
         # Otherwise failed to get output back
@@ -1148,13 +1148,24 @@ class SSH(SSHBase):
         """
         # Initial time
         tic = time.time()
+        # Initial text
+        msg = None
         # Read stdout
         while (timeout is None) or (time.time() - tic < timeout):
             # Read current STDOUT
             txt = self.read_stdout()
-            # Exit if not None
+            # Check if anything was read (this time)
+            if txt is None and msg is not None:
+                # Read something previously but not this time
+                return msg
             if txt is not None:
-                return txt
+                # Check if we had a previous read
+                if msg is None:
+                    # First read
+                    msg = txt
+                else:
+                    # Append to previous read
+                    msg += txt  # pragma no cover
             # Sleep before trying again
             time.sleep(dt)
 

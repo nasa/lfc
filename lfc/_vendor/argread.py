@@ -1,25 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 r"""
-:mod:`argread`: Parse command-line arguments and options
+``argread``: Parse command-line arguments and options
 ==========================================================
 
-
-:Versions:
-    * 2021-11-18 ``@ddalle``: Version 0.1; started
+This class provides the :class:`ArgumentReader` class, instances of
+which can be used to customize available command-line options for a
+given inteface.
 """
 
 # Standard library
 import re
 import sys
-
-
-# Create fake "unicode" type for checking strings in all versions
-if sys.version_info.major > 2:
-    unicode = str
-
-# Create a "string" type
-strlike = (str, unicode)
 
 
 # Regular expression for options like "cdfr=1.3"
@@ -41,7 +33,7 @@ def readkeys(argv=None):
         *kw*: :class:`dict`\ [:class:`str` | :class:`bool`]
             Keyword arguments
     :Versions:
-        * 2021-12-01 ``@ddalle``: Version 1.0
+        * 2021-12-01 ``@ddalle``: v1.0
     """
     # Create parser
     parser = ArgumentReader(single_dash_split=False)
@@ -64,7 +56,7 @@ def readflags(argv=None):
         *kw*: :class:`dict`\ [:class:`str` | :class:`bool`]
             Keyword arguments
     :Versions:
-        * 2021-12-01 ``@ddalle``: Version 1.0
+        * 2021-12-01 ``@ddalle``: v1.0
     """
     # Create parser
     parser = ArgumentReader(
@@ -89,7 +81,7 @@ def readflagstar(argv=None):
         *kw*: :class:`dict`\ [:class:`str` | :class:`bool`]
             Keyword arguments
     :Versions:
-        * 2021-12-01 ``@ddalle``: Version 1.0
+        * 2021-12-01 ``@ddalle``: v1.0
     """
     # Create parser
     parser = ArgumentReader(
@@ -101,21 +93,6 @@ def readflagstar(argv=None):
 
 # Argument read class
 class ArgumentReader(object):
-    __slots__ = (
-        "argv",
-        "args",
-        "kwargs",
-        "prog",
-        "kwargs_sequence",
-        "kwargs_replaced",
-        "kwargs_single_dash",
-        "kwargs_double_dash",
-        "kwargs_equal_sign",
-        "param_sequence",
-        "single_dash_split",
-        "single_dash_lastkey",
-        "equal_sign_key")
-
     r"""Class to parse arguments
 
     :Call:
@@ -127,17 +104,38 @@ class ArgumentReader(object):
             Option to interpret ``-cf 1`` as ``c=True, f="1"``
         *equal_sign_key*: {``True``} | ``False``
             Option to interpret ``a=1`` as ``a="1"`` (keyword)
+        *restrict*: ``True`` | {``False``}
+            Option to only allow declared CLI options
     :Outputs:
         *parser*: :class:`ArgumentReader`
             Instance of command-line argument parser
-    :Versions:
-        * 2021-12-03 ``@ddalle``: Version 1.0
     """
+    # List of instance attributes
+    __slots__ = (
+        "argv",
+        "args",
+        "kwargs",
+        "prog",
+        "equal_sign_key",
+        "kwargs_sequence",
+        "kwargs_replaced",
+        "kwargs_single_dash",
+        "kwargs_double_dash",
+        "kwargs_equal_sign",
+        "param_sequence",
+        "single_dash_split",
+        "single_dash_lastkey",
+        "_optlist",
+        "_optlist_noval",
+        "_optconverters",
+        "_restrict",
+    )
+
     def __init__(self, **kw):
         r"""Initialization method
 
         :Versions:
-            * 2021-11-21 ``@ddalle``: Version 1.0
+            * 2021-11-21 ``@ddalle``: v1.0
         """
         # Initialize attributes
         self.argv = []
@@ -150,6 +148,11 @@ class ArgumentReader(object):
         self.kwargs_double_dash = {}
         self.kwargs_equal_sign = {}
         self.param_sequence = []
+        # Initialize option lists
+        self._optlist = set()
+        self._optlist_noval = set()
+        self._optconverters = {}
+        self._restrict = kw.pop("restrict", False)
         # Parse modes
         self.single_dash_split = kw.pop("single_dash_split", False)
         self.single_dash_lastkey = kw.pop("single_dash_lastkey", False)
@@ -173,7 +176,7 @@ class ArgumentReader(object):
             *kw["__replaced__"]*: :class:`list`\ [(:class:`str`, *any*)]
                 List of any options replaced by later values
         :Versions:
-            * 2021-11-21 ``@ddalle``: Version 0.1; started
+            * 2021-11-21 ``@ddalle``: v1.0
         """
         # Process optional args
         if argv is None:
@@ -188,7 +191,7 @@ class ArgumentReader(object):
             # Check each arg is a string
             for j, arg in enumerate(argv):
                 # Check type
-                if isinstance(arg, strlike):
+                if isinstance(arg, str):
                     continue
                 # Bad type
                 raise TypeError(
@@ -234,12 +237,18 @@ class ArgumentReader(object):
                 # Set all to ``True``
                 for flag in flags:
                     self.save_single_dash(flag, True)
-            # Check option/arg type
+            # Check if arg
             if prefix == "":
                 # Positional parameter
                 self.save_arg(val)
                 continue
-            elif prefix == "=":
+            # Get converter
+            convert_func = self._optconverters.get(key)
+            # Convert the value
+            if callable(convert_func):
+                val = convert_func(val)
+            # Check option type: "-opt", "--opt", "opt=val"
+            if prefix == "=":
                 # Equal-sign option
                 self.save_equal_key(key, val)
                 continue
@@ -256,8 +265,8 @@ class ArgumentReader(object):
                 # This is interpreted "mykey=False"
                 save(key[3:], False)
                 continue
-            # Check if next arg is available
-            if len(argv) == 0:
+            # Check for "noval" options, or if next arg is available
+            if key in self._optlist_noval or (len(argv) == 0):
                 # No following arg to check
                 save(key, True)
                 continue
@@ -279,8 +288,34 @@ class ArgumentReader(object):
         # Output
         return a, kw
 
+    def add_opt(self, opt: str, **kw):
+        r"""Add a recognized option to the list
+
+        :Call:
+            >>> parser.add_opt(opt, noval)
+        :Inputs:
+            *parser*: :class:`ArgumentReader`
+                Command-line argument parser
+            *opt*: :class:`str`
+
+        :Versions:
+            * 2023-09-29 ``@ddalle``: v1.0
+        """
+        # Get options
+        noval = kw.pop("noval", False)
+        convert_func = kw.pop("converter", None)
+        # Add option to list if parser only takes recognized vals
+        if self._restrict:
+            self._optlist.add(opt)
+        # Check for option that doesn't take a value
+        if noval:
+            self._optlist_noval.add(opt)
+        # Save conversion function
+        if callable(convert_func):
+            self._optconverters[opt] = convert_func
+
     # Parse a single arg
-    def _parse_arg(self, arg):
+    def _parse_arg(self, arg: str):
         r"""Parse type for a single CLI arg
 
         :Call:
@@ -300,7 +335,7 @@ class ArgumentReader(object):
             *flags* ``None`` | :class:`str`
                 List of single-character flags, e.g. for ``-lh``
         :Versions:
-            * 2021-11-23 ``@ddalle``: Version 1.0
+            * 2021-11-23 ``@ddalle``: v1.0
         """
         # Global settings
         splitflags = self.single_dash_split
@@ -372,7 +407,7 @@ class ArgumentReader(object):
             *arg*: :class:`str`
                 Name/value of next parameter
         :Versions:
-            * 2021-11-23 ``@ddalle``: Version 1.0
+            * 2021-11-23 ``@ddalle``: v1.0
         """
         self._save(None, arg)
 
@@ -389,7 +424,7 @@ class ArgumentReader(object):
             *v*: {``True``} | ``False`` | :class:`str`
                 Value to save
         :Versions:
-            * 2021-11-23 ``@ddalle``: Version 1.0
+            * 2021-11-23 ``@ddalle``: v1.0
         """
         self._save(k, v)
         self.kwargs_double_dash[k] = v
@@ -407,7 +442,7 @@ class ArgumentReader(object):
             *v*: :class:`str`
                 Value to save
         :Versions:
-            * 2021-11-23 ``@ddalle``: Version 1.0
+            * 2021-11-23 ``@ddalle``: v1.0
         """
         self._save(k, v)
         self.kwargs_equal_sign[k] = v
@@ -425,7 +460,7 @@ class ArgumentReader(object):
             *v*: {``True``} | ``False`` | :class:`str`
                 Value to save
         :Versions:
-            * 2021-11-23 ``@ddalle``: Version 1.0
+            * 2021-11-23 ``@ddalle``: v1.0
         """
         self._save(k, v)
         self.kwargs_single_dash[k] = v

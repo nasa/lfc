@@ -3,12 +3,10 @@
 import os
 import sys
 
-# Third-party [CAPE]
-import argread
-
 # Local imports
 from .lfcerror import GitutilsError
 from .lfcrepo import LFCRepo
+from ._vendor import argread
 
 
 # Help message
