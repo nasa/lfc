@@ -154,7 +154,7 @@ class GitRepo(object):
             gitdir, _ = shellutils.check_o(
                 ["git", "rev-parse", "--show-toplevel"], cwd=path, host=host)
         # Output
-        return gitdir.strip()
+        return gitdir.strip().replace("/", os.sep)
 
     def get_configdir(self):
         r"""Get the path to the ``*.git/`` folder, where ``config`` is
@@ -1090,8 +1090,8 @@ def get_gitdir(where=None, bare=None):
     else:
         gitdir, _ = shellutils.check_o(
             ["git", "rev-parse", "--show-toplevel"], cwd=cwd, host=host)
-    # Output
-    return gitdir.strip()
+    # Output, but git always uses forward-slashes
+    return gitdir.strip().replace("/", os.sep)
 
 
 # Identify local vs remote
