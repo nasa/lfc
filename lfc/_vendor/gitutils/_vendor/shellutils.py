@@ -502,6 +502,8 @@ class SFTP(SSHBase):
    # --- Copy files ---
     # Put a file
     def put(self, flocal: str, fremote=None):
+        # SFTP uses forward slashes
+        flocal = flocal.replace(os.sep, '/')
         # Format command to copy file
         if fremote is None:
             # Copy file to same name in PWD
@@ -522,7 +524,10 @@ class SFTP(SSHBase):
             sftp_cmd = "get %s" % fremote
         else:
             # Explicit name for definition
-            sftp_cmd = "get %s %s" % (fremote, flocal)
+            # SFTP uses forward slashes
+            flocal_sftp = flocal.replace(os.sep, '/')
+            # Copy command
+            sftp_cmd = "get %s %s" % (fremote, flocal_sftp)
         # Execute command
         self.run(sftp_cmd)
         # Save log
