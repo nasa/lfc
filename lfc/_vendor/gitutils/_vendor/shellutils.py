@@ -332,7 +332,7 @@ class SSHPortal(object):
 
     def isfile_local(self, fname: str):
         # Validate file name
-        validate_absfilename(fname)
+        validate_absfilename(fname, sep=os.sep)
         # Absolutize
         fabs = self.abspath_local(fname)
         # Check for file
@@ -1533,7 +1533,7 @@ def _call(cmd, **kw):
 
 
 # Validate an absolute file name
-def validate_absfilename(fname: str):
+def validate_absfilename(fname: str, sep='/'):
     r"""Check if a file name is valid, allowing for folder names
 
     This version only disallows punctuation characters that cause
@@ -1545,15 +1545,18 @@ def validate_absfilename(fname: str):
     systems.
 
     :Call:
-        >>> validate_absfilename(fname)
+        >>> validate_absfilename(fname, sep='/')
     :Inputs:
         *fname*: :class:`str`
             Name of file
+        *sep*: {``'/'``} | ``"\"``
+            Path separator
     :Versions:
         * 2022-12-19 ``@ddalle``: v1.0
+        * 2023-10-25 ``@ddalle``: v1.1; add *sep*
     """
     # Get base file name
-    fbase = fname.split("/")[-1]
+    fbase = fname.split(sep)[-1]
     # Check base name
     validate_filename(fbase)
     # Search through characters of *fname*
@@ -1561,7 +1564,7 @@ def validate_absfilename(fname: str):
 
 
 # Validate a folder name
-def validate_dirname(fdir: str):
+def validate_dirname(fdir: str, sep='/'):
     r"""Check if a folder name is valid
 
     This version only disallows punctuation characters that cause
@@ -1573,15 +1576,16 @@ def validate_dirname(fdir: str):
     systems.
 
     :Call:
-        >>> validate_dirname(fdir)
+        >>> validate_dirname(fdir, sep='/')
     :Inputs:
         *fdir*: :class:`str`
             Name of file
     :Versions:
         * 2022-12-19 ``@ddalle``: v1.0
+        * 2023-10-25 ``@ddalle``: v1.1; add *sep*
     """
     # Get base file name
-    fbase = fdir.split("/")[-1]
+    fbase = fdir.split(sep)[-1]
     # Check length
     _check_fname_len(fbase)
     # On windows, files cannot end with "."
