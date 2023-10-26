@@ -215,14 +215,16 @@ class LFCRepo(GitRepo):
         self._ignore(fname)
         # Current terminal width
         twidth = shutil.get_terminal_size().columns
+        # Truncate file name
+        fname8 = self._trunc8_fname(fname, 20)
         # Check cache status
         if os.path.isfile(flfc) and self.check_status(flfc):
             # Status update
-            print("File up to date: '%s'" % fname)
+            print(f"File up to date: {fname8}")
             # Stub already added
             return
         # Status update
-        sys.stdout.write("Calculating hash: '%s'" % fname)
+        sys.stdout.write(f"Calculating hash: {fname8}")
         sys.stdout.flush()
         # Generate the hash
         fhash = self.genr8_hash(fname)
@@ -250,7 +252,7 @@ class LFCRepo(GitRepo):
         # Check for existing cache
         if os.path.isfile(fcache):
             # Status update
-            print("File already in cache")
+            print(f"File in cache: {fname8}")
         else:
             # Copy file into cache
             shutil.copy(fname, fcache)
