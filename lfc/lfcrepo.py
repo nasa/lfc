@@ -503,49 +503,28 @@ class LFCRepo(GitRepo):
             fglob = self._genr8_lfc_glob(fname)
             # Loop through matches
             for fj in fglob:
-                self._lfc_checkout_cli(fj)
-
-    def _lfc_checkout_cli(self, fname: str):
-        # Strip .lfc if necessary
-        fname = self.genr8_lfc_ofilename(fname)
-        # Add the extension
-        flfc = self.genr8_lfc_filename(fname)
-        # Read metadata
-        lfcinfo = self.read_lfc_file(flfc)
-        # Unpack hash
-        fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
-        # Get path to cache
-        cachedir = self.get_cachedir()
-        # Check for existing file
-        if os.path.isfile(fname):
-            # Calculate hash of existing file
-            hash1 = self.genr8_hash(fname)
-            # Check if it's the same file
-            if hash1 == fhash:
-                return
-            # Generate cache file name for existing file
-            fcache1 = os.path.join(cachedir, fhash[:2], fhash[2:])
-            # Check if file is present
-            if not os.path.isfile(fcache1):
-                raise LFCCheckoutError(
-                    f"Cannot checkout '{fname}'; existing file not in cache")
-            # Otherwise delete existing file
-            os.remove(fname)
-        # Copy cache file to working file
-        shutil.copy(fhash, fname)
+                self._lfc_checkout(fj)
 
     def _lfc_checkout(self, fname: str):
+        # Only appropriate in working repos
+        self.assert_working()
         # Strip .lfc if necessary
         fname = self.genr8_lfc_ofilename(fname)
         # Get info
         lfcinfo = self.read_lfc_file(fname)
         # Unpack MD5 hash
         fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
+        # Get path to cache
+        cachedir = self.get_cachedir()
         # Get cache file name
-        fcache = os.path.join(self.get_cachedir(), fhash[:2], fhash[2:])
+        fcache = os.path.join(cachedir, fhash[:2], fhash[2:])
         # Check if file is present in the cache
         if not os.path.isfile(fcache):
-            raise GitutilsSystemError("File for '%s' is not in cache" % fname)
+            # Truncate long file name
+            f1 = self._trunc8_fname(fname, 32)
+            # Raise exception
+            raise LFCCheckoutError(
+                f"Cannot checkout '{f1}'; not in cache")
         # Check if current file is present
         if os.path.isfile(fname):
             # Get stats about this file and cache file
@@ -557,12 +536,27 @@ class LFCRepo(GitRepo):
             # Modification times
             fmtime = finfo.st_mtime
             cmtime = cinfo.st_mtime
-            # Get size and modification time
-            if (fsize == csize) and (fmtime >= cmtime):
+            # Check size and modification time
+            up_to_date = (fsize == csize) and (fmtime >= cmtime)
+            # If it's not clearly up-to-date, calculate hash
+            if not up_to_date:
+                # Calculate hash of existing file
+                hash1 = self.genr8_hash(fname)
+                # Check if it's the same hash
+                up_to_date = (hash1 == fhash)
+                # Get path to cached version of existing file
+                fhash1 = os.path.join(cachedir, fhash[:2], fhash[2:])
+                # Check if file is present
+                if not os.path.isfile(fhash1):
+                    raise LFCCheckoutError(
+                        f"Cannot checkout '{fname}'; \n" +
+                        "file exists but is not in cache")
+            # Exit if file is up-to-date
+            if up_to_date:
                 # Truncate long file names
-                f1 = self._trunc8_fname(fname, 23)
+                f1 = self._trunc8_fname(fname, 20)
                 # Already up to date!
-                print("File '%s' is up to date" % f1)
+                print("File '%s' up-to-date" % f1)
                 return
             # Remove the file
             os.remove(fname)
