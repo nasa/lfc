@@ -330,11 +330,13 @@ class LFCRepo(GitRepo):
         fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
         # Get remote location
         fremote = self.get_lfc_remote_url(remote)
+        # Split host
+        host, _ = shellutils.identify_host(fremote)
         # Check remote/local
-        if fremote.startswith("ssh://"):
-            self._lfc_push_ssh(fhash, remote, flarge)
-        else:
+        if host is None:
             self._lfc_push_local(fhash, remote)
+        else:
+            self._lfc_push_ssh(fhash, remote, flarge)
 
     def _lfc_push_ssh(self, fhash, remote, fname):
         # Get source file
@@ -429,11 +431,13 @@ class LFCRepo(GitRepo):
             return
         # Get remote location
         fremote = self.get_lfc_remote_url(remote)
+        # Split host name and path
+        host, _ = shellutils.identify_host(fremote)
         # Check remote/local
-        if fremote.startswith("ssh://"):
-            self._lfc_fetch_ssh(fhash, remote, flarge)
-        else:
+        if host is None:
             self._lfc_fetch_local(fhash, remote)
+        else:
+            self._lfc_fetch_ssh(fhash, remote, flarge)
 
     def _lfc_fetch_ssh(self, fhash, remote, fname):
         # Get remote location
@@ -1238,22 +1242,24 @@ class LFCRepo(GitRepo):
         url = config._sections[section].get("url")
         # Ensure it worked
         assert_isinstance(url, str, "URL for LFC remote %s" % remote)
+        # Split into parts
+        host, path = shellutils.identify_host(url)
         # Check for relative URL or remote host that matches current
-        if not url.startswith("ssh://") and not os.path.isabs(url):
+        if host is None and not os.path.isabs(path):
             # Remote given relative to the .lfc folder (not absolute)
             lfcdir = self.get_lfcdir()
             # This won't work on a bare repo
-            url = os.path.join(lfcdir, url)
+            path = os.path.join(lfcdir, path)
             # Get rid of ../..
-            url = os.path.realpath(url)
-        elif url.startswith("ssh://"):
+            url = os.path.realpath(path)
+        elif host is not None:
             # Get target host to see if it matches the current one
             parts = url.split("/")
             host = parts[2]
             # Check for match
             if socket.gethostname().startswith(host):
                 # Use local path (absolute)
-                local_url = "/" + "/".join(parts[3:])
+                local_url = path
                 local_par = os.path.dirname(local_url)
                 # Test if it exists
                 if os.path.isdir(local_url) or os.path.isdir(local_par):

@@ -23,6 +23,7 @@ B4 = os.urandom(128)
 # Name of remote to use
 LOCAL = "local"
 REMOTE = "mirror"
+REMOTE2 = "mirror2"
 # Get current repo
 REPO = LFCRepo()
 # Get "mirror" remote
@@ -32,8 +33,8 @@ TEST_CACHE = posixpath.join(MIRROR_URL, "testcache")
 # Get host and path to remote cache
 CACHEHOST, CACHEDIR = TEST_CACHE.split(':', 1)
 # Reformat URL
-TEST_CACHE = TEST_CACHE.replace(":", "")
-TEST_CACHE = f"ssh://{TEST_CACHE}"
+TEST_CACHE1 = TEST_CACHE.replace(":", "")
+TEST_CACHE1 = f"ssh://{TEST_CACHE1}"
 
 # List of files to copy
 REPO_NAME = "repo"
@@ -69,6 +70,7 @@ def test_repo01():
     # Initialize LFC
     repo.lfc_init()
     repo.set_lfc_remote(REMOTE, TEST_CACHE, default=True)
+    repo.set_lfc_remote(REMOTE2, TEST_CACHE1)
     repo.set_lfc_remote(LOCAL, remotecache)
     # Commit it
     repo.commit("Initialize LFC", a=True)
@@ -91,6 +93,11 @@ def test_repo01():
     # Connect a local portal (should do nothing)
     portal = repo.make_lfc_portal(LOCAL)
     assert portal is None
+    # Connect to secondary portal
+    portal = repo.make_lfc_portal(REMOTE2)
+    # Make sure it worked
+    assert portal.ssh.host == CACHEHOST
+    repo.close_lfc_portal(REMOTE2)
     # Get portal
     portal = repo.make_lfc_portal(REMOTE)
     # Push to remote
@@ -104,5 +111,3 @@ def test_repo01():
     assert REMOTE not in repo.lfc_portals
 
 
-if __name__ == "__main__":
-    test_repo01()
