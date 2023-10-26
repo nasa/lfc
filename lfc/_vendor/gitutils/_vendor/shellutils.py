@@ -44,7 +44,9 @@ SLEEP_PROGRESS = 0.1
 N_TIMEOUT = 100
 
 # Regular expression for deciding if a path is local
-REGEX_HOST = re.compile(r"((?P<host>[A-Za-z][A-Za-z0-9-.]+):)?(?P<path>.+)$")
+REGEX_HOST2 = re.compile(r"((?P<host>[A-Za-z][A-Za-z0-9-.]+):)?(?P<path>.+)$")
+REGEX_HOST1 = re.compile(
+    r"ssh://(?P<host>[A-Za-z][A-Za-z0-9-.]+)(?P<path>/.+)$")
 
 
 # Standard messages
@@ -1677,9 +1679,14 @@ def identify_host(where=None):
     """
     # Default to current location
     if where is None:
-        where = os.getcwd()
+        return None, os.getcwd()
+    # Check against ssh://{host}/{path} pattern
+    match = REGEX_HOST1.match(where)
+    # Check for amatch
+    if match:
+        return match.group("host"), match.group("path")
     # Check against pattern (guaranteed to match)
-    match = REGEX_HOST.match(where)
+    match = REGEX_HOST2.match(where)
     # Return groups
     return match.group("host"), match.group("path")
 

@@ -50,8 +50,7 @@ class LFCRepo(GitRepo):
         "bare",
         "gitdir",
         "lfc_config",
-        "lfc_portal",
-        "lfc_remote",
+        "lfc_portals",
         "_t_lfc_config")
 
    # --- __dunder__ ---
@@ -60,12 +59,11 @@ class LFCRepo(GitRepo):
         GitRepo.__init__(self, where)
         # Initialize other slots
         self.lfc_config = None
-        self.lfc_portal = None
-        self.lfc_remote = None
+        self.lfc_portals = {}
         self._t_lfc_config = None
 
    # --- SSH portal interface ---
-    def make_lfc_portal(self, remote=None):
+    def make_lfc_portal(self, remote=None) -> shellutils.SSHPortal:
         r"""Open SSH/SFTP portal for large files
 
         :Call:
@@ -80,13 +78,14 @@ class LFCRepo(GitRepo):
                 Persistent file transfer portal
         :Versions:
             * 2022-12-20 ``@ddalle``: v1.0
+            * 2023-10-26 ``@ddalle``: v1.1; multiple portals
         """
         # Resolve remote name
         remote = self.resolve_lfc_remote_name(remote)
         # Get current attribute
-        portal = self.lfc_portal
+        portal = self.lfc_portals.get(remote)
         # Exit if already processed
-        if remote == self.lfc_remote and portal is not None:
+        if portal is not None:
             # Return current portal
             return portal
         # Get remote
@@ -110,30 +109,33 @@ class LFCRepo(GitRepo):
         # Change directory
         portal.chdir_remote(path)
         # Save it
-        self.lfc_portal = portal
-        self.lfc_remote = remote
+        self.lfc_portals[remote] = portal
         # Return it
         return portal
 
-    def close_lfc_portal(self):
+    def close_lfc_portal(self, remote=None):
         r"""Close large file transfer portal, if any
 
         :Call:
-            >>> repo.close_lfc_portal()
+            >>> repo.close_lfc_portal(remote=None)
         :Inputs:
             *repo*: :class:`GitRepo`
                 Interface to git repository
+            *remote*: {``None``} | :class:`str`
+                Name of remote, or default
         :Versions:
             * 2022-12-20 ``@ddalle``: v1.0
+            * 2023-10-26 ``@ddalle``: v1.1; multiple portals
         """
+        # Resolve remote name
+        remote = self.resolve_lfc_remote_name(remote)
         # Get current portal
-        portal = self.lfc_portal
+        portal = self.lfc_portals.get(remote)
         # Close it
         if portal is not None:
             portal.close()
         # Reset LFC portal
-        self.lfc_portal = None
-        self.lfc_remote = None
+        self.lfc_portals.pop(remote, None)
 
    # --- LFC replace-DVC ---
     @run_gitdir
@@ -1405,11 +1407,14 @@ class LFCRepo(GitRepo):
             return os.path.join(self.gitdir, ext, "config")
 
 
-def _get_remote_host(fremote):
-    # Split all the slashes except first two
-    parts = fremote[6:].split("/")
-    # Split host and remaining portions
-    host = parts[0]
-    path = "/" + "/".join(parts[1:])
-    # Combine
-    return host, path
+def _get_remote_host(fremote: str):
+    # Check for cases
+    if fremote.startswith("ssh://"):
+        # Split all the slashes except first two
+        parts = fremote[6:].split("/")
+        # Split host and remaining portions
+        host = parts[0]
+        path = "/" + "/".join(parts[1:])
+        # Combine
+        return host, path
+

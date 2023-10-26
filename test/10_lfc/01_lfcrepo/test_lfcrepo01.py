@@ -8,7 +8,6 @@ from subprocess import call
 import testutils
 
 # Local imports
-import lfc.lfcrepo
 from lfc.cli import (
     lfc_add,
     lfc_init,
@@ -113,10 +112,8 @@ def test_repo02():
     fname02 = OTHER_FILES[0]
     # Paths to working and bare repo
     sandbox = os.getcwd()
-    workrepo = os.path.join(sandbox, REPO_NAME)
     copyrepo = os.path.join(sandbox, fdir01)
     barerepo = os.path.join(sandbox, f"{REPO_NAME}.git")
-    remotecache = os.path.join(barerepo, "cache")
     # Clone a second working repo
     ierr = call(["git", "clone", barerepo, fdir01])
     assert ierr == 0
