@@ -5,6 +5,7 @@ PKG=lfc
 
 # Run tests
 python3 -m pytest \
+    "test/10_lfc" \
     --junitxml=test/junit.xml \
     --cov=$PKG \
     --cov-report html:test/htmlcov 

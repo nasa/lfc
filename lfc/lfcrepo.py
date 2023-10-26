@@ -213,6 +213,8 @@ class LFCRepo(GitRepo):
         flfc = self.genr8_lfc_filename(fname)
         # Make sure main file is ignored
         self._ignore(fname)
+        # Current terminal width
+        twidth = shutil.get_terminal_size().columns
         # Check cache status
         if os.path.isfile(flfc) and self.check_status(flfc):
             # Status update
@@ -224,7 +226,7 @@ class LFCRepo(GitRepo):
         sys.stdout.flush()
         # Generate the hash
         fhash = self.genr8_hash(fname)
-        sys.stdout.write("\r%72s\r" % "")
+        sys.stdout.write("\r%*s\r" % (twidth, ""))
         sys.stdout.flush()
         # We need the size of the file, too
         finfo = os.stat(fname)
