@@ -89,7 +89,6 @@ def test_repo01():
     fhash1 = posixpath.join(hash1[:2], hash1[2:])
     fhash2 = posixpath.join(hash2[:2], hash2[2:])
     # Connect a local portal (should do nothing)
-    breakpoint()
     portal = repo.make_lfc_portal(LOCAL)
     assert portal is None
     # Get portal
