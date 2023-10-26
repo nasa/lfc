@@ -8,6 +8,7 @@ from subprocess import call
 import testutils
 
 # Local imports
+import lfc.lfcrepo
 from lfc.cli import (
     lfc_add,
     lfc_init,

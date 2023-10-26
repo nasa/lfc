@@ -8,6 +8,7 @@ and transfer large files tracked with ``lfc``.
 """
 
 # Standard library
+import fnmatch
 import glob
 import hashlib
 import os
@@ -701,7 +702,7 @@ class LFCRepo(GitRepo):
         return info["outs"][0]
 
    # --- LFC search ---
-    def find_lfc_files(self, pattern=None, ext=None, **kw):
+    def find_lfc_files(self, pattern=None, ext=None, **kw) -> list:
         r"""Find all large file stubs
 
         :Call:
@@ -719,29 +720,24 @@ class LFCRepo(GitRepo):
         :Versions:
             * 2022-12-20 ``@ddalle``: v1.0
             * 2022-12-28 ``@ddalle``: v1.1; bug fix for empty result
+            * 2023-10-26 ``@ddalle``: v2.0
+                - use ``ls_tree()`` instead of calling ``git ls-files``
+                - works with ``lfc add data/`` or similar
         """
         # Get extension
         if ext is None:
             ext = self.get_lfc_ext()
-        # Default pattern
-        default_pattern = "*" + ext
-        if pattern is None:
-            # Search for all *ext* files from current directory
-            pattern = default_pattern
-        elif os.path.isdir(pattern):
-            # Append extension to folder name (e.g. all .lfc in data/)
-            pattern = os.path.join(pattern, default_pattern)
-        elif not pattern.endswith(default_pattern):
-            # Append default pattern
-            pattern = pattern + default_pattern
-        # List the files
-        stdout = self.check_o(["git", "ls-files", pattern]).rstrip("\n")
-        # Return as a list
-        if stdout == "":
-            # Empty list ("".split("\n") is [""] ... which is a prob)
-            return []
-        else:
-            return stdout.split("\n")
+        # Default: all .lfc files
+        default_pattern = f"*{ext}"
+        # Apply default pattern
+        pat = default_pattern if pattern is None else pattern
+        # If pattern does not end with extension, add it
+        if not pat.endswith(ext):
+            pat = pat.rstrip(".") + ext
+        # Get all tracked files (relative to CWD if working repo)
+        all_files = self.ls_tree(r=True)
+        # Filter against the pattern
+        return fnmatch.filter(all_files, pat)
 
     def _genr8_lfc_glob(self, fpat: str):
         # Search for files matching pattern
