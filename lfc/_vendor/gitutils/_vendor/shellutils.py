@@ -44,7 +44,7 @@ SLEEP_PROGRESS = 0.1
 N_TIMEOUT = 100
 
 # Regular expression for deciding if a path is local
-REGEX_HOST = re.compile(r"((?P<host>[A-Za-z][A-Za-z-.]+):)?(?P<path>.+)$")
+REGEX_HOST = re.compile(r"((?P<host>[A-Za-z][A-Za-z0-9-.]+):)?(?P<path>.+)$")
 
 
 # Standard messages
@@ -57,10 +57,10 @@ _FILENAME_CHAR_DENYLIST = frozenset(
     '/"\\|:*?<>,;=' +
     bytes(list(range(32)) + [127]).decode("ascii"))
 _DIRNAME_CHAR_DENYLIST = frozenset(
-    '"\\|:*?<>,;=' +
+    '"|:*?<>,;=' +
     bytes(list(range(32)) + [127]).decode("ascii"))
 _GLOBNAME_CHAR_DENYLIST = frozenset(
-    '"\\|:<>,;=' +
+    '"|:<>,;=' +
     bytes(list(range(32)) + [127]).decode("ascii"))
 
 # Only show progress (by default) if STDOUT connected to a terminal
@@ -332,7 +332,7 @@ class SSHPortal(object):
 
     def isfile_local(self, fname: str):
         # Validate file name
-        validate_absfilename(fname)
+        validate_absfilename(fname, sep=os.sep)
         # Absolutize
         fabs = self.abspath_local(fname)
         # Check for file
@@ -502,6 +502,8 @@ class SFTP(SSHBase):
    # --- Copy files ---
     # Put a file
     def put(self, flocal: str, fremote=None):
+        # SFTP uses forward slashes
+        flocal = flocal.replace(os.sep, '/')
         # Format command to copy file
         if fremote is None:
             # Copy file to same name in PWD
@@ -522,7 +524,10 @@ class SFTP(SSHBase):
             sftp_cmd = "get %s" % fremote
         else:
             # Explicit name for definition
-            sftp_cmd = "get %s %s" % (fremote, flocal)
+            # SFTP uses forward slashes
+            flocal_sftp = flocal.replace(os.sep, '/')
+            # Copy command
+            sftp_cmd = "get %s %s" % (fremote, flocal_sftp)
         # Execute command
         self.run(sftp_cmd)
         # Save log
@@ -1100,7 +1105,7 @@ class SSH(SSHBase):
                     return 0
                 else:
                     # Save any other STDOUT we got
-                    self._save_stdout(txt)  # pragma no cover
+                    self._save_stdout(txt)
             # Sleep before trying again
             time.sleep(dt)
         # Otherwise failed to get output back
@@ -1148,13 +1153,24 @@ class SSH(SSHBase):
         """
         # Initial time
         tic = time.time()
+        # Initial text
+        msg = None
         # Read stdout
         while (timeout is None) or (time.time() - tic < timeout):
             # Read current STDOUT
             txt = self.read_stdout()
-            # Exit if not None
+            # Check if anything was read (this time)
+            if txt is None and msg is not None:
+                # Read something previously but not this time
+                return msg
             if txt is not None:
-                return txt
+                # Check if we had a previous read
+                if msg is None:
+                    # First read
+                    msg = txt
+                else:
+                    # Append to previous read
+                    msg += txt  # pragma no cover
             # Sleep before trying again
             time.sleep(dt)
 
@@ -1522,7 +1538,7 @@ def _call(cmd, **kw):
 
 
 # Validate an absolute file name
-def validate_absfilename(fname: str):
+def validate_absfilename(fname: str, sep='/'):
     r"""Check if a file name is valid, allowing for folder names
 
     This version only disallows punctuation characters that cause
@@ -1534,15 +1550,18 @@ def validate_absfilename(fname: str):
     systems.
 
     :Call:
-        >>> validate_absfilename(fname)
+        >>> validate_absfilename(fname, sep='/')
     :Inputs:
         *fname*: :class:`str`
             Name of file
+        *sep*: {``'/'``} | ``"\"``
+            Path separator
     :Versions:
         * 2022-12-19 ``@ddalle``: v1.0
+        * 2023-10-25 ``@ddalle``: v1.1; add *sep*
     """
     # Get base file name
-    fbase = fname.split("/")[-1]
+    fbase = fname.split(sep)[-1]
     # Check base name
     validate_filename(fbase)
     # Search through characters of *fname*
@@ -1550,7 +1569,7 @@ def validate_absfilename(fname: str):
 
 
 # Validate a folder name
-def validate_dirname(fdir: str):
+def validate_dirname(fdir: str, sep='/'):
     r"""Check if a folder name is valid
 
     This version only disallows punctuation characters that cause
@@ -1562,15 +1581,18 @@ def validate_dirname(fdir: str):
     systems.
 
     :Call:
-        >>> validate_dirname(fdir)
+        >>> validate_dirname(fdir, sep='/')
     :Inputs:
         *fdir*: :class:`str`
             Name of file
     :Versions:
         * 2022-12-19 ``@ddalle``: v1.0
+        * 2023-10-25 ``@ddalle``: v1.1; add *sep*
     """
     # Get base file name
-    fbase = fdir.split("/")[-1]
+    fbase = fdir.split(sep)[-1]
+    # Check base name
+    _check_str_denylist(fbase, _FILENAME_CHAR_DENYLIST, "folder name")
     # Check length
     _check_fname_len(fbase)
     # On windows, files cannot end with "."

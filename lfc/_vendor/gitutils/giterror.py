@@ -26,15 +26,23 @@ class GitutilsError(Exception):
 class GitutilsAttributeError(AttributeError, GitutilsError):
     r"""Error related to accessing attributes of :class:`OptionsDict`
 
-    Inherits from :class:`AttributeError` and :class:`OpdictError`.
+    Inherits from :class:`AttributeError` and :class:`GitutilsError`.
     """
     pass
 
 
-class GitutilsNameError(NameError, GitutilsError):
-    r"""Error for badly named options in :class:`OptionsDict`
+class GitutilsExprError(ValueError, GitutilsError):
+    r"""Exception for invalid ``@expr``
 
-    Inherits from :class:`NameError` and :class:`GitutilsError`
+    Applies to :func:`Gitutils.optitem.getel` or :class:`OptionsDict`
+    """
+    pass
+
+
+class GitutilsFileNotFoundError(FileNotFoundError, GitutilsError):
+    r"""Exception for missing but required file
+
+    Inherits from :class:`FileNotFoundError` and :class;`GitutilsError`
     """
     pass
 
@@ -55,6 +63,14 @@ class GitutilsKeyError(KeyError, GitutilsError):
     pass
 
 
+class GitutilsNameError(NameError, GitutilsError):
+    r"""Error for badly named options in :class:`OptionsDict`
+
+    Inherits from :class:`NameError` and :class:`GitutilsError`
+    """
+    pass
+
+
 class GitutilsSystemError(SystemError, GitutilsError):
     r"""Exception for system errors raised by :mod:`gitutils`
     """
@@ -69,14 +85,6 @@ class GitutilsTypeError(TypeError, GitutilsError):
 
 class GitutilsValueError(ValueError, GitutilsError):
     r"""Exception for unexpected value of parameter in :mod:`Gitutils`
-    """
-    pass
-
-
-class GitutilsExprError(ValueError, GitutilsError):
-    r"""Exception for invalid ``@expr``
-
-    Applies to :func:`Gitutils.optitem.getel` or :class:`OptionsDict`
     """
     pass
 
@@ -116,7 +124,19 @@ def assert_isinstance(obj, cls_or_tuple, desc=None):
 
 
 # Assert that file exists
-def assert_isfile(fname):
+def assert_isfile(fname: str):
+    r"""Ensure that a file exists
+
+    :Call:
+        >>> assert_isfile(fname)
+    :Inputs:
+        *fname*: :class:`str`
+            Name of a file
+    :Raises:
+        :class:`GitutilsFileNotFoundError` if *fname* does not exist
+    :Versions:
+        * 2023-10-25 ``@ddalle``: v1.0
+    """
     # Check for file
     if not os.path.isfile(fname):
         # Start message
@@ -125,7 +145,7 @@ def assert_isfile(fname):
         if not os.path.isabs(fname):
             # Show working directory
             msg += "\n  relative to '%s'" % os.getcwd()
-        raise GitutilsSystemError(msg)
+        raise GitutilsFileNotFoundError(msg)
 
 
 # Create error message for type errors
