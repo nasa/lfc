@@ -11,6 +11,7 @@ import testutils
 from lfc.cli import (
     lfc_add,
     lfc_init,
+    lfc_pull,
     lfc_push,
     lfc_remote
 )
@@ -25,9 +26,12 @@ COPY_FILES = [
     "sample.rst",
     "rando.dat",
 ]
+OTHER_FILES = [
+    "rando2.dat",
+]
 
 
-# Initialize a repo
+# Initialize a repo; test lfc_init, lfc_add, lfc_push
 @testutils.run_sandbox(__file__, copydirs=REPO_NAME)
 def test_repo01():
     # Paths to working and bare repo
@@ -47,7 +51,7 @@ def test_repo01():
     # Key file names
     fname00 = COPY_FILES[0]
     fname01 = COPY_FILES[1]
-    fname02 = "rando2.dat"
+    fname02 = OTHER_FILES[0]
     # Add a file
     repo.add(fname00)
     # Issue a commit
@@ -59,7 +63,7 @@ def test_repo01():
     # Add a remote
     lfc_remote("add", "hub", remotecache, d=True)
     # Commit it
-    repo.commit("Initialize LFC")
+    repo.commit("Initialize LFC", a=True)
     # Add a file with LFC
     lfc_add(fname01)
     # Commit first file
@@ -96,3 +100,35 @@ def test_repo01():
     # Use check_cache() interface
     assert repo.check_cache(fname01)
     assert repo.check_cache(fname02)
+
+
+# Clone a repo; test lfc_pull
+@testutils.run_sandbox(__file__, fresh=False)
+def test_repo02():
+    # Name of cloned working repo
+    fdir01 = "copy"
+    # File names
+    fname01 = COPY_FILES[1]
+    fname02 = OTHER_FILES[0]
+    # Paths to working and bare repo
+    sandbox = os.getcwd()
+    workrepo = os.path.join(sandbox, REPO_NAME)
+    copyrepo = os.path.join(sandbox, fdir01)
+    barerepo = os.path.join(sandbox, f"{REPO_NAME}.git")
+    remotecache = os.path.join(barerepo, "cache")
+    # Clone a second working repo
+    ierr = call(["git", "clone", barerepo, fdir01])
+    assert ierr == 0
+    # Enter the copy repo
+    os.chdir(copyrepo)
+    # Make sure large file is *NOT* present
+    assert not os.path.isfile(fname01)
+    assert not os.path.isfile(fname02)
+    # Pull the LFC stub
+    lfc_pull(fname01)
+    # Now the file should be there
+    assert os.path.isfile(fname01)
+    # Generic pull
+    lfc_pull()
+    # Noew both files should be present
+    assert os.path.isfile(fname02)

@@ -893,14 +893,16 @@ class LFCRepo(GitRepo):
         return os.path.join(self.gitdir, ext)
 
     @run_gitdir
-    def get_lfc_ext(self):
+    def get_lfc_ext(self, vdef=".lfc"):
         r"""Get name of large file utility
 
         :Call:
-            >>> ext = repo.get_lfc_ext()
+            >>> ext = repo.get_lfc_ext(vdef=".lfc")
         :Inputs:
             *repo*: :class:`GitRepo`
                 Interface to git repository
+            *vdef*: {``".lfc"``} | ``".dvc"``
+                Preferred default if neither is present
         :Outputs:
             *ext*: ``".dvc"`` | ``".lfc"``
                 Working extenion to use for large file stubs
@@ -910,13 +912,14 @@ class LFCRepo(GitRepo):
         """
         # Check for both folders
         lfc_dirs = self.ls_tree(".lfc", ".dvc", r=False)
-        # Check for various folders
-        if ".lfc" in lfc_dirs or os.path.isdir(".lfc"):
-            # Folder .lfc exists; use "lfc" extension
-            return ".lfc"
-        else:
-            # Default: .dvc
-            return ".dvc"
+        # Check candidates
+        for ext in (".lfc", ".dvc"):
+            # Check if folder is tracked or exists
+            if ext in lfc_dirs or os.path.isdir(ext):
+                # this version exists
+                return ext
+        # If reaching this point, use default
+        return vdef
 
    # --- LFC file names ---
     def genr8_lfc_filename(self, fname: str) -> str:
@@ -1001,12 +1004,10 @@ class LFCRepo(GitRepo):
                 Interface to git repository
         :Versions:
             * 2022-12-28 ``@ddalle``: v1.0
+            * 2023-10-25 ``@ddalle``: v1.1; better double-call behavior
         """
         # Only activate in working repo
         self.assert_working()
-        # Check if already initiated
-        if os.path.isfile(self.get_lfc_configfile()):
-            return
         # Directly form LFC dir and config file
         lfcdir = os.path.join(self.gitdir, ".lfc")
         # Config file for LFC
@@ -1014,20 +1015,21 @@ class LFCRepo(GitRepo):
         # .gitignore file for LFC
         fgitignore = os.path.join(lfcdir, ".gitignore")
         # Create LFC dir if needed
-        if not os.path.isdir(lfcdir):
-            os.mkdir(lfcdir)
+        self.make_cachedir()
         # Write .lfc/.gitignore
-        with open(fgitignore, 'w') as fp:
-            # Write three files to ignore
-            fp.write("/cache\n")
-            fp.write("/config.local\n")
-            fp.write("/tmp")
+        if not os.path.isfile(fgitignore):
+            with open(fgitignore, 'w') as fp:
+                # Write three files to ignore
+                fp.write("/cache\n")
+                fp.write("/config.local\n")
+                fp.write("/tmp")
         # Write *fcfg*
-        with open(fcfg, 'w') as fp:
-            # Write initial config
-            fp.write("[core]\n")
-            fp.write("autostage = true\n")
-            fp.write("check_update = false\n")
+        if not os.path.isfile(fcfg):
+            with open(fcfg, 'w') as fp:
+                # Write initial config
+                fp.write("[core]\n")
+                fp.write("autostage = true\n")
+                fp.write("check_update = false\n")
         # Add the new files
         self._add(fcfg)
         self._add(fgitignore)
@@ -1116,7 +1118,6 @@ class LFCRepo(GitRepo):
         self.write_lfc_config(config)
 
    # --- LFC remote config ---
-
     def list_lfc_remotes(self) -> list:
         r"""List all large file remote names
 
