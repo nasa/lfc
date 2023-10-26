@@ -23,7 +23,7 @@ TEST_FILES = [
 ]
 SIZE2 = 4000
 # Location for remote
-HOST = "pfe"
+HOST = "linux252"
 REMOTE_DIR = "/tmp"
 
 

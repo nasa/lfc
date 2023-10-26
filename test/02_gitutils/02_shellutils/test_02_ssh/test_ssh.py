@@ -4,8 +4,8 @@ from lfc._vendor.gitutils._vendor.shellutils import call
 
 
 # Hub location on pfe
-HOST = "pfe"
-HUB = "/nobackupp16/ddalle/cape/hub"
+HOST = "linux252"
+HUB = "/nobackup/ddalle/cape/hub"
 PKG = "src/shellutils.git"
 
 

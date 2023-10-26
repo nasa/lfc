@@ -91,7 +91,7 @@ class LFCRepo(GitRepo):
         # Get remote
         fremote = self.get_lfc_remote_url(remote)
         # Get parts of remote
-        host, path = _get_remote_host(fremote)
+        host, path = shellutils.identify_host(fremote)
         # No portal if remote is local
         if host is None:
             return
@@ -342,7 +342,7 @@ class LFCRepo(GitRepo):
         # Get remote location
         fremote = self.get_lfc_remote_url(remote)
         # Get parts of remote
-        _, path = _get_remote_host(fremote)
+        _, path = shellutils.identify_host(fremote)
         # Get portal
         portal = self.make_lfc_portal(remote)
         # Ensure correct folder
@@ -439,7 +439,7 @@ class LFCRepo(GitRepo):
         # Get remote location
         fremote = self.get_lfc_remote_url(remote)
         # Get parts of remote
-        _, path = _get_remote_host(fremote)
+        _, path = shellutils.identify_host(fremote)
         # Get portal
         portal = self.make_lfc_portal(remote)
         # Ensure correct folder
@@ -1405,16 +1405,4 @@ class LFCRepo(GitRepo):
         else:
             # Return absolute path
             return os.path.join(self.gitdir, ext, "config")
-
-
-def _get_remote_host(fremote: str):
-    # Check for cases
-    if fremote.startswith("ssh://"):
-        # Split all the slashes except first two
-        parts = fremote[6:].split("/")
-        # Split host and remaining portions
-        host = parts[0]
-        path = "/" + "/".join(parts[1:])
-        # Combine
-        return host, path
 

@@ -19,6 +19,11 @@ def test_host_cwd():
     # Test results
     assert host == HOST
     assert path == HUB
+    # Test for alternamte method
+    host, path = identify_host(f"ssh://{HOST}{HUB}")
+    # Test results
+    assert host == HOST
+    assert path == HUB
     # Test for local path
     host, path = identify_host(PKG)
     # Test results
