@@ -151,9 +151,13 @@ class LFCRepo(GitRepo):
         the ``.dvc/`` folder to ``.lfc/`` and remove the ``.dvc/plots/``
         folder and ``.dvcignore`` file.
 
+        If both ``.dvc/`` and ``.lfc/`` exist, this function will merge
+        the caches so that any files in ``.dvc/cache/`` are copied into
+        ``.lfc/cache/``.
+
         It does not recompute any hashes as LFC can work with MD-5
-        hashes. It cannot compute any new ones, but it can still utilize
-        the old ones and have the two intermixed.
+        hashes. It does not compute any new ones, but it can still
+        utilize the old ones and have the two intermixed.
 
         :Call:
             >>> repo.lfc_replace_dvc()
@@ -163,6 +167,7 @@ class LFCRepo(GitRepo):
         :Versions:
             * 2022-12-28 ``@ddalle``: v1.0
             * 2023-03-17 ``@ddalle``: v1.1; delete .dvc/plots first
+            * 2023-10-27 ``@ddalle``: v1.2; merge caches
         """
         # Only attempt in working repo
         self.assert_working()
@@ -170,6 +175,8 @@ class LFCRepo(GitRepo):
         flfcdir = os.path.join(self.gitdir, ".lfc")
         fdvcdir = os.path.join(self.gitdir, ".dvc")
         fplotdir = os.path.join(fdvcdir, "plots")
+        dvccache = os.path.join(fdvcdir, "cache")
+        lfccache = os.path.join(flfcdir, "cache")
         # Check if .dvc/plots folder was there
         if os.path.isdir(fplotdir):
             # Remove it
@@ -178,6 +185,11 @@ class LFCRepo(GitRepo):
         if os.path.isdir(fdvcdir) and not os.path.isdir(flfcdir):
             # Move the folder (using git)
             self.mv(".dvc", ".lfc")
+        elif os.path.isdir(dvccache):
+            # Combine the caches
+            _merge_caches(dvccache, lfccache)
+            # Remove anything left in the .dvc/ folder
+            shutil.rmtree(fdvcdir)
         # Check for .dvcignore
         if os.path.isfile(".dvcignore"):
             # Remove it
@@ -1426,3 +1438,38 @@ class LFCRepo(GitRepo):
 
 def _check_host(host: str) -> bool:
     return socket.gethostname().startswith(host)
+
+
+def _merge_caches(dvccache: str, lfccache: str):
+    # Create new cache
+    if not os.path.isdir(lfccache):
+        os.mkdir(lfccache)
+    # List the dvc cache
+    cachesubs = os.listdir(dvccache)
+    # Loop through those subs
+    for p1 in cachesubs:
+        # Construct .dvc/cache/{p1} and .lfc/cache/{p1}
+        dvcpart = os.path.join(dvccache, p1)
+        lfcpart = os.path.join(lfccache, p1)
+        # Skip if it's a file (not a folder)
+        if not os.path.isdir(dvcpart):
+            continue
+        # Check if destination exists
+        if os.path.isdir(lfcpart):
+            # In that case, loop through the contents of *p1* in .dvc
+            for p2 in os.listdir(dvcpart):
+                # Construct full paths
+                p2dvc = os.path.join(dvcpart, p2)
+                p2lfc = os.path.join(lfcpart, p2)
+                # Move file if not already in .lfc/cache/
+                if (not os.path.isfile(p2lfc)) and os.path.isfile(p2dvc):
+                    # Status update
+                    f1 = f"{p1}/{p2[:8]}"
+                    print("{.dvc -> .lfc}/cache/" + f1)
+                    # Move the file
+                    os.rename(p2dvc, p2lfc)
+        else:
+            # Status update
+            print("{.dvc -> .lfc}/cache/" + p1)
+            # Move the whole folder if no conflict w/ .lfc/cache
+            os.rename(dvcpart, lfcpart)

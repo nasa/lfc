@@ -14,6 +14,7 @@ from lfc.cli import (
     lfc_pull,
     lfc_push,
     lfc_remote,
+    lfc_replace_dvc,
     lfc_show
 )
 from lfc.lfcrepo import (
@@ -181,3 +182,36 @@ def test_repo03():
     show3 = repo.lfc_show(fname03)
     assert show3 is None
 
+
+# Test lfc-replace-dvc
+@testutils.run_sandbox(__file__, fresh=False)
+def test_repo04():
+    # Go to the "copy" repo
+    os.chdir("copy")
+    # Instantiate repo
+    repo = LFCRepo()
+    # Move files to make it look like a DVC repo
+    repo.mv(".lfc", ".dvc")
+    assert os.path.isdir(".dvc")
+    # Create a .dvcignore file
+    with open(".dvcignore", 'w') as fp:
+        fp.write("*.xlsx\n")
+    # Create a .dvc/plots dir
+    os.mkdir(os.path.join(".dvc", "plots"))
+    # Put a file in it to add (DVC really has this file)
+    fjson = os.path.join(".dvc", "plots", "confusion.json")
+    with open(fjson, 'w') as fp:
+        fp.write("{}\n")
+    # Add those files
+    repo.add(fjson)
+    repo.add(".dvcignore")
+    # Move a .lfc stub to a .dvc file
+    flfc = repo.find_lfc_files(ext=".lfc")[0]
+    fdvc = flfc[:-3] + "dvc"
+    repo.mv(flfc, fdvc)
+    # Commit these changes
+    repo.commit("Pretend to be DVC")
+    # Run the replace-dvc command
+    lfc_replace_dvc()
+    # Make sure the /.lfc folder is present
+    assert os.path.isdir(".lfc")
