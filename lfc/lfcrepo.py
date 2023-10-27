@@ -41,6 +41,10 @@ from ._vendor.gitutils.gitrepo import (
 # Regular expression for LFC remote section names
 REGEX_LFC_REMOTE_SECTION = re.compile('\'remote "(?P<name>\\w+)"\'')
 
+# Error codes
+IERR_OK = 0
+IERR_FILE_NOT_FOUND = 128
+
 
 # Create new class
 class LFCRepo(GitRepo):
@@ -413,8 +417,11 @@ class LFCRepo(GitRepo):
                 self._lfc_pull(fj, remote)
 
     def _lfc_pull(self, fname: str, remote=None):
-        self._lfc_fetch(fname, remote)
-        self._lfc_checkout(fname)
+        # Fetch (download/copy) file to local cache
+        ierr = self._lfc_fetch(fname, remote)
+        # Check it out
+        if ierr == IERR_OK:
+            self._lfc_checkout(fname)
 
     def _lfc_fetch(self, fname: str, remote=None):
         # Get info
@@ -428,18 +435,18 @@ class LFCRepo(GitRepo):
         # Check if file is present in the cache
         if os.path.isfile(fcache):
             # Done
-            return
+            return IERR_OK
         # Get remote location
         fremote = self.get_lfc_remote_url(remote)
         # Split host name and path
         host, _ = shellutils.identify_host(fremote)
         # Check remote/local
         if host is None:
-            self._lfc_fetch_local(fhash, remote)
+            return self._lfc_fetch_local(fhash, remote, flarge)
         else:
-            self._lfc_fetch_ssh(fhash, remote, flarge)
+            return self._lfc_fetch_ssh(fhash, remote, flarge)
 
-    def _lfc_fetch_ssh(self, fhash, remote, fname):
+    def _lfc_fetch_ssh(self, fhash, remote, fname: str):
         # Get remote location
         fremote = self.get_lfc_remote_url(remote)
         # Get parts of remote
@@ -466,11 +473,12 @@ class LFCRepo(GitRepo):
             f1 = self._trunc8_fname(fname, 30)
             # Status update and exit
             print("Remote cache missing file '%s'" % f1)
-            return
+            return IERR_FILE_NOT_FOUND
         # Copy file
         portal.get(fsrc, ftarg, fprog=fname)
+        return IERR_OK
 
-    def _lfc_fetch_local(self, fhash, remote):
+    def _lfc_fetch_local(self, fhash, remote, fname: str):
         # Get remote location
         fremote = self.get_lfc_remote_url(remote)
         # Get source file
@@ -485,9 +493,14 @@ class LFCRepo(GitRepo):
             os.mkdir(ftargdir)
         # Check if remote cache contains file
         if not os.path.isfile(fsrc):
-            raise GitutilsSystemError("Remote cache does not contain file")
+            # Truncate long file name
+            f1 = self._trunc8_fname(fname, 30)
+            # Status update and exit
+            print("Remote cache missing file '%s'" % f1)
+            return IERR_FILE_NOT_FOUND
         # Copy file
         shutil.copy(fsrc, ftarg)
+        return IERR_OK
 
    # --- LFC checkout --
     def lfc_checkout(self, *fnames, **kw):
@@ -595,8 +608,10 @@ class LFCRepo(GitRepo):
         if len(self.ls_tree(flfc, ref=ref)) == 0:
             # Just try to show it
             if len(self.ls_tree(forig, ref=ref)) == 0:
-                raise GitutilsSystemError(
-                    "No file '%s' or '%s' tracked by git" % (forig, flfc))
+                # Truncate long file name
+                f1 = self._trunc8_fname(forig, 20)
+                print(f"No git/lfc file '{f1}'")
+                return
             # Read file if passing above test
             return self.show(forig, ref=ref)
         # Get hash
@@ -609,15 +624,11 @@ class LFCRepo(GitRepo):
         for remote in self.list_lfc_remotes():
             # Get url
             url = self.get_lfc_remote_url(remote)
+            # Split parts
+            host, path = shellutils.identify_host(url)
             # Check if SSH
-            if url.startswith("ssh://"):
-                # Save the local path, ignoring host name
-                path = "/" + url.split("/", 3)[-1]
-            else:
-                # Local path
-                path = url
-            # Save candidate cache location
-            cachedirs.append(path)
+            if host is None or _check_host(host):
+                cachedirs.append(path)
         # Loop through candidates
         for cachedir in cachedirs:
             # Absolute file name
@@ -1257,7 +1268,7 @@ class LFCRepo(GitRepo):
             parts = url.split("/")
             host = parts[2]
             # Check for match
-            if socket.gethostname().startswith(host):
+            if _check_host(host):
                 # Use local path (absolute)
                 local_url = path
                 local_par = os.path.dirname(local_url)
@@ -1412,3 +1423,6 @@ class LFCRepo(GitRepo):
             # Return absolute path
             return os.path.join(self.gitdir, ext, "config")
 
+
+def _check_host(host: str) -> bool:
+    return socket.gethostname().startswith(host)

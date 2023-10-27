@@ -44,7 +44,7 @@ COPY_FILES = [
 ]
 
 
-# Initialize a repo; test lfc_init, lfc_add, lfc_push
+# SSH: lfc-push
 @testutils.run_sandbox(__file__, copydirs=REPO_NAME)
 def test_repo01():
     # Delete the remote cache if appropriate
@@ -84,6 +84,8 @@ def test_repo01():
         fp.write(B2)
     # Add some files
     repo.lfc_add(fname01, fname02)
+    # Commit the addition
+    repo.commit("Add two LFC files")
     # Get hashes
     hash1 = repo.get_lfc_hash(fname01)
     hash2 = repo.get_lfc_hash(fname02)
@@ -111,3 +113,24 @@ def test_repo01():
     assert REMOTE not in repo.lfc_portals
 
 
+# SSH: lfc-pull
+@testutils.run_sandbox(__file__, fresh=False)
+def test_repo02():
+    # Clone the working repo
+    ierr = call(["git", "clone", REPO_NAME, FORK_NAME])
+    assert ierr == 0
+    assert os.path.isdir(FORK_NAME)
+    # Enter the new repo
+    os.chdir(FORK_NAME)
+    # Instantiate repo
+    repo = LFCRepo()
+    # File names
+    fname01 = "rand01.dat"
+    fname02 = "rand02.dat"
+    # Pull from remote cache
+    repo.lfc_pull(fname01)
+    # Check the situation
+    assert not os.path.isfile(fname02)
+    assert os.path.isfile(fname01)
+    assert os.path.isfile(f"{fname01}.lfc")
+    assert os.path.isfile(f"{fname02}.lfc")

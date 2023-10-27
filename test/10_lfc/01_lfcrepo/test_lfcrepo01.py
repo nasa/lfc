@@ -13,7 +13,8 @@ from lfc.cli import (
     lfc_init,
     lfc_pull,
     lfc_push,
-    lfc_remote
+    lfc_remote,
+    lfc_show
 )
 from lfc.lfcrepo import (
     LFCRepo
@@ -102,7 +103,7 @@ def test_repo01():
     assert repo.check_cache(fname02)
 
 
-# Clone a repo; test lfc_pull
+# Clone a repo; test lfc-pull
 @testutils.run_sandbox(__file__, fresh=False)
 def test_repo02():
     # Name of cloned working repo
@@ -130,3 +131,28 @@ def test_repo02():
     lfc_pull()
     # Noew both files should be present
     assert os.path.isfile(fname02)
+
+
+# Test lfc-show
+@testutils.run_sandbox(__file__, fresh=False)
+def test_repo03():
+    # Paths to working and bare repo
+    sandbox = os.getcwd()
+    workrepo = os.path.join(sandbox, REPO_NAME)
+    barerepo = os.path.join(sandbox, f"{REPO_NAME}.git")
+    # Enter the bare repo
+    os.chdir(barerepo)
+    # Some file names
+    fname01 = COPY_FILES[0]
+    fname03 = "not_really.dat"
+    # Read original file
+    f1 = os.path.join(workrepo, fname01)
+    b1 = open(f1, 'rb').read()
+    # Run lfc-show on other file
+    ierr = lfc_show(f"{fname03}.lfc")
+    assert ierr != 0
+    # Instantiate repo
+    repo = LFCRepo()
+    # Run show command to get bytes of *fname01*
+    b2 = repo.lfc_show(f"{fname01}.lfc")
+    assert b1 == b2
