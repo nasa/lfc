@@ -29,6 +29,7 @@ COPY_FILES = [
 ]
 OTHER_FILES = [
     "rando2.dat",
+    "rando3.dat"
 ]
 
 
@@ -39,6 +40,7 @@ def test_repo01():
     sandbox = os.getcwd()
     workrepo = os.path.join(sandbox, REPO_NAME)
     barerepo = os.path.join(sandbox, f"{REPO_NAME}.git")
+    localcache = os.path.join(workrepo, ".lfc", "cache")
     remotecache = os.path.join(barerepo, "cache")
     # Enter the "repo" dir
     os.chdir(REPO_NAME)
@@ -53,6 +55,7 @@ def test_repo01():
     fname00 = COPY_FILES[0]
     fname01 = COPY_FILES[1]
     fname02 = OTHER_FILES[0]
+    fname03 = OTHER_FILES[1]
     # Add a file
     repo.add(fname00)
     # Issue a commit
@@ -80,6 +83,17 @@ def test_repo01():
     repo.commit("Add same LFC file with new name")
     # Make sure second stub is present
     assert os.path.isfile(fname02 + ".lfc")
+    # Create and add third binary file
+    with open(fname03, 'wb') as fp:
+        fp.write(os.urandom(128))
+    lfc_add(fname03)
+    assert os.path.isfile(f"{fname03}.lfc")
+    repo.commit("Add third LFC file")
+    # Manually remove it from the local cache for testing
+    hash3 = repo.get_lfc_hash(fname03)
+    fhash03 = os.path.join(localcache, hash3[:2], hash3[2:])
+    assert os.path.isfile(fhash03)
+    os.remove(fhash03)
     # Go back to sandbox parent
     os.chdir(sandbox)
     # Clone the repo
@@ -144,15 +158,26 @@ def test_repo03():
     os.chdir(barerepo)
     # Some file names
     fname01 = COPY_FILES[0]
-    fname03 = "not_really.dat"
+    fname02 = COPY_FILES[1]
+    fname03 = OTHER_FILES[1]
+    fname04 = "not_really.dat"
     # Read original file
     f1 = os.path.join(workrepo, fname01)
+    f2 = os.path.join(workrepo, fname02)
     b1 = open(f1, 'rb').read()
+    b2 = open(f2, 'rb').read()
     # Run lfc-show on other file
-    ierr = lfc_show(f"{fname03}.lfc")
+    ierr = lfc_show(f"{fname04}.lfc")
     assert ierr != 0
     # Instantiate repo
     repo = LFCRepo()
-    # Run show command to get bytes of *fname01*
-    b2 = repo.lfc_show(f"{fname01}.lfc")
-    assert b1 == b2
+    # Run lfc-show on git-tracked file
+    show1 = repo.lfc_show(fname01)
+    assert b1 == show1
+    # Run lfc-show on lfc-tracked file
+    show2 = repo.lfc_show(fname02)
+    assert b2 == show2
+    # Run lfc-show on file missing from cache
+    show3 = repo.lfc_show(fname03)
+    assert show3 is None
+

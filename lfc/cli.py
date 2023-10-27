@@ -35,6 +35,12 @@ CMD_CONFIG_DICT = {
     "set": LFCRepo.lfc_config_set,
 }
 
+# Return codes
+IERR_OK = 0
+IERR_CMD = 16
+IERR_ARGS = 32
+IERR_FILE_NOT_FOUND = 128
+
 
 def lfc_add(*a, **kw):
     # Read the repo
@@ -49,7 +55,7 @@ def lfc_config(*a, **kw):
     # Check command
     if len(a) < 1:
         print("lfc-config got %i arguments; at least 1 required" % len(a))
-        return
+        return IERR_ARGS
     # Get command name
     cmdname = a[0]
     # Get function
@@ -59,7 +65,7 @@ def lfc_config(*a, **kw):
         # Unrecognized function
         print("Unexpected 'lfc-remote' command '%s'" % cmdname)
         print("Options are: " + " | ".join(list(CMD_CONFIG_DICT.keys())))
-        return
+        return IERR_CMD
     # Run function
     func(repo, *a[1:], **kw)
 
@@ -107,7 +113,7 @@ def lfc_remote(*a, **kw):
     # Check command
     if len(a) < 1:
         print("lfc-remote got %i arguments; at least 1 required" % len(a))
-        return
+        return IERR_ARGS
     # Get command name
     cmdname = a[0]
     # Get function
@@ -117,7 +123,7 @@ def lfc_remote(*a, **kw):
         # Unrecognized function
         print("Unexpected 'lfc-remote' command '%s'" % cmdname)
         print("Options are: " + " | ".join(list(CMD_REMOTE_DICT.keys())))
-        return
+        return IERR_CMD
     # Run function
     func(repo, *a[1:], **kw)
 
@@ -135,12 +141,12 @@ def lfc_show(*a, **kw):
     # Check if *a* has exactly one file
     if len(a) != 1:
         print("lfc-show got %i arguments; expected %i" % (len(a), 1))
-        return
+        return IERR_ARGS
     # Call the *show* command
     contents = repo.lfc_show(a[0], **kw)
     # Check for result
     if contents is None:
-        return 1
+        return IERR_FILE_NOT_FOUND
     # Write contents back to STDOUT
     os.write(sys.stdout.fileno(), contents)
 
@@ -181,10 +187,12 @@ def main():
         return 0
     # Run function
     try:
-        func(*a[1:], **kw)
+        ierr = func(*a[1:], **kw)
     except GitutilsError as err:
         print(f"{err.__class__.__name__}:")
         print(f"  {err}")
         return 1
+    # Convert None -> 0
+    ierr = IERR_OK if ierr is None else ierr
     # Normal exit
-    return 0
+    return ierr
