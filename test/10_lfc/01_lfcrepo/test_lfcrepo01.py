@@ -213,5 +213,49 @@ def test_repo04():
     repo.commit("Pretend to be DVC")
     # Run the replace-dvc command
     lfc_replace_dvc()
+    # Commit the results
+    repo.commit("Replace dvc -> lfc")
     # Make sure the /.lfc folder is present
     assert os.path.isdir(".lfc")
+    assert os.path.isfile(flfc)
+    assert not os.path.isdir(".dvc")
+    assert not os.path.isfile(fdvc)
+    # Get the hash for an LFC file to test merging overlapping caches
+    hash1 = repo.get_lfc_hash(flfc)
+    p1 = hash1[:2]
+    p2 = hash1[2:]
+    # Recreate a ".dvc" folder to test merger of caches
+    dvccache = os.path.join(".dvc", "cache")
+    newp1 = os.path.join(dvccache, "p1")
+    newp2 = os.path.join(newp1, "p2")
+    os.mkdir(".dvc")
+    os.mkdir(dvccache)
+    os.mkdir(newp1)
+    # And a file that's directly placed in .dvc/cache
+    newf4 = os.path.join(dvccache, "afile")
+    # Create a folder that overlaps with .lfc/cache
+    oldp1 = os.path.join(dvccache, p1)
+    oldp2 = os.path.join(oldp1, p2)
+    mixp2 = os.path.join(oldp1, "p3")
+    os.mkdir(oldp1)
+    for fname in (mixp2, newf4, newp2, oldp2):
+        with open(fname, 'wb') as fp:
+            fp.write(os.urandom(16))
+    # Rerun the command
+    lfc_replace_dvc()
+    # Get file names for final tests
+    lfccache = os.path.join(".lfc", "cache")
+    newf1 = os.path.join(lfccache, "p1", "p2")
+    newf3 = os.path.join(lfccache, p1, "p3")
+    # Test if the files were moved from .dvc/
+    assert os.path.isfile(newf1)
+    assert os.path.isfile(newf3)
+    # One more time to create .lfc/cache if needed
+    os.rename(lfccache, ".lfccache")
+    os.mkdir(".dvc")
+    os.mkdir(dvccache)
+    lfc_replace_dvc()
+    # Tests
+    assert os.path.isdir(lfccache)
+    os.rmdir(lfccache)
+    os.rename(".lfccache", lfccache)
