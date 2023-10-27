@@ -5,11 +5,13 @@ import shutil
 from subprocess import call
 
 # Third-party
+import pytest
 import testutils
 
 # Local imports
 from lfc.cli import (
     lfc_add,
+    lfc_checkout,
     lfc_init,
     lfc_pull,
     lfc_push,
@@ -18,6 +20,8 @@ from lfc.cli import (
     lfc_show
 )
 from lfc.lfcrepo import (
+    GitutilsFileNotFoundError,
+    LFCCheckoutError,
     LFCRepo
 )
 
@@ -259,3 +263,62 @@ def test_repo04():
     assert os.path.isdir(lfccache)
     os.rmdir(lfccache)
     os.rename(".lfccache", lfccache)
+
+
+# Tests of basic operations
+@testutils.run_sandbox(__file__, fresh=False)
+def test_repo05():
+    # Go into working folder
+    os.chdir(REPO_NAME)
+    # Instantiate repo
+    repo = LFCRepo()
+    # Try to hash a file that doesn't exist
+    with pytest.raises(GitutilsFileNotFoundError):
+        repo.genr8_hash(os.path.join("no_such_file.dat"))
+
+
+# Test lfc-checkout
+@testutils.run_sandbox(__file__, fresh=False)
+def test_repo06():
+    # Go into working folder
+    os.chdir(REPO_NAME)
+    # Instantiate repo
+    repo = LFCRepo()
+    # File names
+    fname01 = COPY_FILES[1]
+    fname02 = OTHER_FILES[1]
+    # Checkout all files
+    lfc_checkout(fname01)
+    # Pull the second file
+    repo.lfc_pull(fname02)
+    # Get hash
+    hash2 = repo.get_lfc_hash(fname02)
+    # File to cache of *fname02*
+    fhash2 = os.path.join(".lfc", "cache", hash2[:2], hash2[2:])
+    # Delete it!
+    if os.path.isfile(fhash2):
+        os.remove(fhash2)
+    # Now try to checkout *fname02*
+    with pytest.raises(LFCCheckoutError):
+        repo._lfc_checkout(fname02)
+    # Now we're going to create a new version of *fname01*
+    with open(fname01, 'wb') as fp:
+        fp.write(os.urandom(127))
+    # Try to checkout *fname01*; should fail b/c current uncached ver
+    try:
+        repo._lfc_checkout(fname01)
+    except LFCCheckoutError as err:
+        assert "uncached" in err.args[0]
+    else:
+        raise ValueError(f"lfc-checkout overwrote uncached '{fname01}'")
+    # Now add the new file to the cache
+    hash1 = repo.genr8_hash(fname01)
+    fdir1 = os.path.join(".lfc", "cache", hash1[:2])
+    fhash1 = os.path.join(fdir1, hash1[2:])
+    if not os.path.isdir(fdir1):
+        os.mkdir(fdir1)
+    shutil.copy(fname01, fhash1)
+    # Rerun the checkout command
+    repo._lfc_checkout(fname01)
+    # Should have a different hash now (the original one)
+    assert repo.genr8_hash(fname01) != hash1

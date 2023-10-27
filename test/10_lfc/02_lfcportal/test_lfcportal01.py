@@ -107,6 +107,8 @@ def test_repo01():
     # Ensure the files were pushed
     assert portal.ssh.isfile(fhash1)
     assert portal.ssh.isfile(fhash2)
+    # Push it again to test remote cache detection
+    repo.lfc_push(fname01)
     # Close the portal
     repo.close_lfc_portal(REMOTE)
     # Make sure it was closed
@@ -134,3 +136,13 @@ def test_repo02():
     assert os.path.isfile(fname01)
     assert os.path.isfile(f"{fname01}.lfc")
     assert os.path.isfile(f"{fname02}.lfc")
+    # Get hash for file 2
+    hash2 = repo.get_lfc_hash(fname02)
+    fhash = posixpath.join(hash2[:2], hash2[2:])
+    # Get the portal
+    portal = repo.make_lfc_portal(REMOTE)
+    # Delete the remote cache file
+    portal.ssh.remove(fhash)
+    # Try to pull it
+    ierr = repo._lfc_fetch_ssh(fhash, REMOTE, fname02)
+    assert ierr != 0

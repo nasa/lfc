@@ -27,6 +27,7 @@ import yaml
 from .lfcerror import LFCCheckoutError
 from ._vendor.gitutils._vendor import shellutils
 from ._vendor.gitutils.giterror import (
+    GitutilsFileNotFoundError,
     GitutilsKeyError,
     GitutilsSystemError,
     GitutilsValueError,
@@ -296,7 +297,9 @@ class LFCRepo(GitRepo):
         """
         # Check if file exists
         if not os.path.isfile(fname):
-            raise GitutilsSystemError("No file '%s'" % fname)
+            # Truncate file name
+            f1 = self._trunc8_fname(fname, 28)
+            raise GitutilsFileNotFoundError(f"Can't hash '{f1}'; no such file")
         # Read the file and calculate SHA-256 hash
         obj = hashlib.sha256(open(fname, "rb").read())
         # Get the MD-5 hash out
@@ -555,7 +558,7 @@ class LFCRepo(GitRepo):
             f1 = self._trunc8_fname(fname, 32)
             # Raise exception
             raise LFCCheckoutError(
-                f"Cannot checkout '{f1}'; not in cache")
+                f"Can't checkout '{f1}'; not in cache")
         # Check if current file is present
         if os.path.isfile(fname):
             # Get stats about this file and cache file
@@ -576,12 +579,14 @@ class LFCRepo(GitRepo):
                 # Check if it's the same hash
                 up_to_date = (hash1 == fhash)
                 # Get path to cached version of existing file
-                fhash1 = os.path.join(cachedir, fhash[:2], fhash[2:])
+                fhash1 = os.path.join(cachedir, hash1[:2], hash1[2:])
                 # Check if file is present
                 if not os.path.isfile(fhash1):
+                    # Truncate file name
+                    f1 = self._trunc8_fname(fname, 42)
+                    # Raise exceptoin
                     raise LFCCheckoutError(
-                        f"Cannot checkout '{fname}'; \n" +
-                        "file exists but is not in cache")
+                        f"Can't checkout '{f1}'; exsiting uncached file")
             # Exit if file is up-to-date
             if up_to_date:
                 # Truncate long file names
