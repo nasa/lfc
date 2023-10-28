@@ -26,7 +26,8 @@ from .giterror import (
     GitutilsFileNotFoundError,
     GitutilsSystemError,
     GitutilsValueError,
-    assert_isinstance)
+    assert_isinstance,
+    trunc8_fname)
 
 
 # Regular expression for deciding if a path is local
@@ -658,8 +659,9 @@ class GitRepo(object):
         fdir = os.path.dirname(fabs)
         # Make sure *fdir* exists
         if not os.path.isdir(fdir):
+            f1 = trunc8_fname(fname, 24)
             raise GitutilsFileNotFoundError(
-                f"Could not find folder for file '{fname}'")
+                f"Could not find folder for file '{f1}'")
         # Write the file
         with open(fabs, mode) as fp:
             fp.write(contents)

@@ -1,4 +1,7 @@
 
+# Standard library
+import shutil
+
 # Third-party
 import testutils
 
@@ -30,6 +33,11 @@ def test_isfile():
         raise ValueError("Exception expected")
     # Test file that does exist
     giterror.assert_isfile(fname00)
+    # Test truncation of long file name w/o slash
+    f1 = giterror.trunc8_fname("a"*80, n=40)
+    # Won't test the output, except to make sure it's short enough
+    twidth = shutil.get_terminal_size().columns
+    assert len(f1) + 40 <= twidth
 
 
 # Test type checker

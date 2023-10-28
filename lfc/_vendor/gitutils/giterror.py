@@ -12,6 +12,7 @@ specifically raised by this package
 
 # Standard library
 import os
+import shutil
 
 
 # Basic error family
@@ -139,12 +140,15 @@ def assert_isfile(fname: str):
     """
     # Check for file
     if not os.path.isfile(fname):
+        # Truncate long file name
+        f1 = trunc8_fname(fname, 23)
         # Start message
-        msg = "File '%s' does not exist" % fname
+        msg = f"File '{f1}' does not exist"
         # Check for absolute path
         if not os.path.isabs(fname):
             # Show working directory
-            msg += "\n  relative to '%s'" % os.getcwd()
+            f2 = trunc8_fname(os.getcwd(), 18)
+            msg += f"\n  relative to '{f2}'"
         raise GitutilsFileNotFoundError(msg)
 
 
@@ -168,3 +172,39 @@ def _genr8_type_error(obj, cls_or_tuple, desc=None):
     msg3 = "expected '%s'" % ("' | '".join(names))
     # Output
     return msg1 + msg2 + msg3
+
+
+def trunc8_fname(fname: str, n: int) -> str:
+    r"""Truncate string so it fits in current terminal with *n* to spare
+
+    :Call:
+        >>> fshort = trunc8_fname(fname, n)
+    :Inputs:
+        *fname*: :class:`str`
+            File name or other string to truncate
+        *n*: :class:`int`
+            Number of chars to reserve for other text
+    :Outputs:
+        *fshort*: :class:`str`
+            *fname* or truncated version if *fname* won't fit in current
+            terminal width
+    """
+    # Length of current name
+    l0 = len(fname)
+    # Max width allowed (right now)
+    maxwidth = shutil.get_terminal_size().columns - n
+    # Check if truncation needed
+    if l0 < maxwidth:
+        # Use existing name
+        return fname
+    # Try to get leading folder
+    if "/" in fname:
+        # Get first folder, then everything else
+        part1, part2 = fname.split("/", 1)
+        # Try to truncate this
+        fname = part1 + "/..." + part2[4 + len(part1) - maxwidth:]
+    else:
+        # Just truncate file name from end
+        fname = fname[-maxwidth:]
+    # Output
+    return fname

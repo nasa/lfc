@@ -32,7 +32,8 @@ from ._vendor.gitutils.giterror import (
     GitutilsSystemError,
     GitutilsValueError,
     assert_isinstance,
-    assert_isfile)
+    assert_isfile,
+    trunc8_fname)
 from ._vendor.gitutils.gitrepo import (
     GitRepo,
     run_gitdir
@@ -715,7 +716,8 @@ class LFCRepo(GitRepo):
         if self.bare or ref is not None:
             # Make sure the file exists
             if len(self.ls_tree(fname, ref=ref)) == 0:
-                raise GitutilsSystemError("No file '%s' in repo" % fname)
+                f1 = self._trunc8_fname(fname, 20)
+                raise GitutilsFileNotFoundError(f"No file '{f1}' in repo")
             # Read the file, assume UTF-8 encoding
             txt = self.show(fname, ref=ref).decode("utf-8")
             # Parse as YAML
@@ -999,25 +1001,7 @@ class LFCRepo(GitRepo):
         return fname
 
     def _trunc8_fname(self, fname: str, n: int) -> str:
-        # Length of current name
-        l0 = len(fname)
-        # Max width allowed (right now)
-        maxwidth = shutil.get_terminal_size().columns - n
-        # Check if truncation needed
-        if l0 < maxwidth:
-            # Use existing name
-            return fname
-        # Try to get leading folder
-        if "/" in fname:
-            # Get first folder, then everything else
-            part1, part2 = fname.split("/", 1)
-            # Try to truncate this
-            fname = part1 + "/..." + part2[4 + len(part1) - maxwidth:]
-        else:
-            # Just truncate file name from end
-            fname = fname[-maxwidth:]
-        # Output
-        return fname
+        return trunc8_fname(fname, n)
 
    # --- LFC init ---
     def lfc_init(self, **kw):

@@ -185,6 +185,9 @@ def test_repo03():
     # Run lfc-show on file missing from cache
     show3 = repo.lfc_show(fname03)
     assert show3 is None
+    # Read stub from file not found
+    with pytest.raises(GitutilsFileNotFoundError):
+        repo.read_lfc_file(f"{fname04}.lfc")
 
 
 # Test lfc-replace-dvc
