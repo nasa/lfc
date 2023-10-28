@@ -278,6 +278,11 @@ def test_repo05():
     # Try to hash a file that doesn't exist
     with pytest.raises(GitutilsFileNotFoundError):
         repo.genr8_hash(os.path.join("no_such_file.dat"))
+    # File names
+    fname01 = COPY_FILES[1]
+    # Find files based on pattern w/o .lfc
+    fnames = repo.find_lfc_files(fname01)
+    assert fnames == [f"{fname01}.lfc"]
 
 
 # Test lfc-checkout

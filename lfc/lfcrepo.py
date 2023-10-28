@@ -29,7 +29,6 @@ from ._vendor.gitutils._vendor import shellutils
 from ._vendor.gitutils.giterror import (
     GitutilsFileNotFoundError,
     GitutilsKeyError,
-    GitutilsSystemError,
     GitutilsValueError,
     assert_isinstance,
     assert_isfile,
@@ -322,17 +321,12 @@ class LFCRepo(GitRepo):
         """
         # Get remote
         remote = kw.get("remote", kw.get("r"))
-        # Default file list
-        if len(fnames) == 0:
-            # Find all files w/i CWD or children
-            fnames = self.find_lfc_files()
+        # Expand file list
+        lfcfiles = self.genr8_lfc_glob(*fnames)
         # Loop through files
-        for fname in fnames:
-            # Expand
-            fglob = self._genr8_lfc_glob(fname)
-            # Loop through matches
-            for fj in fglob:
-                self._lfc_push(fj, remote)
+        for flfc in lfcfiles:
+            # Push
+            self._lfc_push(flfc, remote)
 
     def _lfc_push(self, fname: str, remote=None):
         # Get info
@@ -420,17 +414,12 @@ class LFCRepo(GitRepo):
         """
         # Get remote
         remote = kw.get("remote", kw.get("r"))
-        # Default file list
-        if len(fnames) == 0:
-            # Find all files w/i CWD or children
-            fnames = self.find_lfc_files()
-        # Loop through files
-        for fname in fnames:
-            # Expand
-            fglob = self._genr8_lfc_glob(fname)
-            # Loop through matches
-            for fj in fglob:
-                self._lfc_pull(fj, remote)
+        # Expand list of files
+        lfcfiles = self.genr8_lfc_glob(*fnames)
+        # Loop through matches
+        for flfc in lfcfiles:
+            # Pull
+            self._lfc_pull(flfc, remote)
 
     def _lfc_pull(self, fname: str, remote=None):
         # Fetch (download/copy) file to local cache
@@ -519,7 +508,7 @@ class LFCRepo(GitRepo):
         return IERR_OK
 
    # --- LFC checkout --
-    def lfc_checkout(self, *fnames, **kw):
+    def lfc_checkout(self, fname: str, *fnames, **kw):
         r"""Checkout one or more large files from current ``.lfc`` stub
 
         :Call:
@@ -532,13 +521,12 @@ class LFCRepo(GitRepo):
         :Versions:
             * 2023-10-24 ``@ddalle``: v1.0
         """
+        # Expand list of files
+        lfcfiles = self.genr8_lfc_glob(fname, *fnames)
         # Loop through files
-        for fname in fnames:
-            # Expand
-            fglob = self._genr8_lfc_glob(fname)
-            # Loop through matches
-            for fj in fglob:
-                self._lfc_checkout(fj)
+        for flfc in lfcfiles:
+            # Checkout single file
+            self._lfc_checkout(flfc)
 
     def _lfc_checkout(self, fname: str):
         # Only appropriate in working repos
@@ -762,27 +750,29 @@ class LFCRepo(GitRepo):
         # Apply default pattern
         pat = default_pattern if pattern is None else pattern
         # If pattern does not end with extension, add it
-        if not pat.endswith(ext):
-            pat = pat.rstrip(".") + ext
+        if not pat.endswith(ext[1:]):
+            pat = pat.rstrip(".*") + default_pattern
         # Get all tracked files (relative to CWD if working repo)
         all_files = self.ls_tree(r=True)
         # Filter against the pattern
         return fnmatch.filter(all_files, pat)
 
-    def _genr8_lfc_glob(self, fpat: str):
-        # Search for files matching pattern
-        fglob = glob.glob(fpat)
-        # If there are matches; return them
-        if len(fglob) > 0:
-            return fglob
-        # If that's empty, check for a file that's fpat + ".lfc"
-        flfc = self.genr8_lfc_filename(fpat)
-        # Check if file exists
-        if os.path.isfile(flfc):
-            return [flfc]
-        # Otherwise we should alert users
-        sys.tracebacklimit = 1
-        raise GitutilsSystemError("No matches for pattern '%s'" % fpat)
+    def genr8_lfc_glob(self, *fnames):
+        # Default to (None,) if no inputs
+        patterns = (None,) if len(fnames) == 0 else fnames
+        # Initialize glob
+        fglob = []
+        # Loop through patterns
+        for pat in patterns:
+            # Find matches
+            fglobj = self.find_lfc_files(pat)
+            # Append to overall list
+            for fj in fglobj:
+                # Check for duplicates from previous *pat*
+                if fj not in fglob:
+                    fglob.append(fj)
+        # Output
+        return fglob
 
    # --- LFC status ---
     def check_status(self, flfc):
