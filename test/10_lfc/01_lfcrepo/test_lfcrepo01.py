@@ -91,6 +91,9 @@ def test_repo01():
     # Create and add third binary file
     with open(fname03, 'wb') as fp:
         fp.write(os.urandom(128))
+    # Check status of file b4 adding it
+    assert not repo._lfc_status(fname03)
+    # Add third file
     lfc_add(fname03)
     assert os.path.isfile(f"{fname03}.lfc")
     repo.commit("Add third LFC file")
@@ -99,6 +102,8 @@ def test_repo01():
     fhash03 = os.path.join(localcache, hash3[:2], hash3[2:])
     assert os.path.isfile(fhash03)
     os.remove(fhash03)
+    # Since hash file has been removed, lfc-status should fail
+    assert not repo._lfc_status(fname03)
     # Go back to sandbox parent
     os.chdir(sandbox)
     # Clone the repo
