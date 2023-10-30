@@ -21,5 +21,5 @@ setup(
             "lfc=lfc.cli:main"
         ]
     },
-    version="1.0.0b6")
+    version="1.0.0b7")
 

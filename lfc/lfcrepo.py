@@ -751,6 +751,15 @@ class LFCRepo(GitRepo):
             pat = pat.rstrip(".*") + default_pattern
         # Get all tracked files (relative to CWD if working repo)
         all_files = self.ls_tree(r=True)
+        # Include files added but not committed
+        if not self.bare:
+            # Get status files
+            statusdict = self.status()
+            # Loop through files; potentially including each one
+            for frel in statusdict:
+                # Check if file is (a) in PWD and (b) not already found
+                if not frel.startswith("..") and (frel not in all_files):
+                    all_files.append(frel)
         # Filter against the pattern
         return fnmatch.filter(all_files, pat)
 
