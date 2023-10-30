@@ -238,7 +238,7 @@ class LFCRepo(GitRepo):
         # Truncate file name
         fname8 = self._trunc8_fname(fname, 20)
         # Check cache status
-        if os.path.isfile(flfc) and self.check_status(flfc):
+        if os.path.isfile(flfc) and self._lfc_status(flfc):
             # Status update
             print(f"File up to date: {fname8}")
             # Stub already added
@@ -548,41 +548,30 @@ class LFCRepo(GitRepo):
             # Raise exception
             raise LFCCheckoutError(
                 f"Can't checkout '{f1}'; not in cache")
-        # Check if current file is present
+        # Check status
+        up_to_date = self._lfc_status(fname)
+        # Exit if file is up-to-date
+        if up_to_date:
+            # Truncate long file names
+            f1 = self._trunc8_fname(fname, 20)
+            # Already up to date!
+            print("File '%s' up-to-date" % f1)
+            return
+        # Check for existing file that's not up-to-date
         if os.path.isfile(fname):
-            # Get stats about this file and cache file
-            finfo = os.stat(fname)
-            cinfo = os.stat(fcache)
-            # Sizes
-            fsize = finfo.st_size
-            csize = cinfo.st_size
-            # Modification times
-            fmtime = finfo.st_mtime
-            cmtime = cinfo.st_mtime
-            # Check size and modification time
-            up_to_date = (fsize == csize) and (fmtime >= cmtime)
-            # If it's not clearly up-to-date, calculate hash
-            if not up_to_date:
-                # Calculate hash of existing file
-                hash1 = self.genr8_hash(fname)
-                # Check if it's the same hash
-                up_to_date = (hash1 == fhash)
-                # Get path to cached version of existing file
-                fhash1 = os.path.join(cachedir, hash1[:2], hash1[2:])
-                # Check if file is present
-                if not os.path.isfile(fhash1):
-                    # Truncate file name
-                    f1 = self._trunc8_fname(fname, 42)
-                    # Raise exceptoin
-                    raise LFCCheckoutError(
-                        f"Can't checkout '{f1}'; exsiting uncached file")
-            # Exit if file is up-to-date
-            if up_to_date:
-                # Truncate long file names
-                f1 = self._trunc8_fname(fname, 20)
-                # Already up to date!
-                print("File '%s' up-to-date" % f1)
-                return
+            # Calculate hash of existing file
+            hash1 = self.genr8_hash(fname)
+            # Check if it's the same hash
+            up_to_date = (hash1 == fhash)
+            # Get path to cached version of existing file
+            fhash1 = os.path.join(cachedir, hash1[:2], hash1[2:])
+            # Check if file is present
+            if not os.path.isfile(fhash1):
+                # Truncate file name
+                f1 = self._trunc8_fname(fname, 42)
+                # Raise exceptoin
+                raise LFCCheckoutError(
+                    f"Can't checkout '{f1}'; exsiting uncached file")
             # Remove the file
             os.remove(fname)
         # Copy file
@@ -775,11 +764,11 @@ class LFCRepo(GitRepo):
         return fglob
 
    # --- LFC status ---
-    def check_status(self, flfc):
+    def _lfc_status(self, flfc: str) -> bool:
         r"""Check if the LFC status of a large file is up-to-odate
 
         :Call:
-            >>> status = repo.check_status(flfc)
+            >>> status = repo._lfc_status(flfc)
         :Inputs:
             *repo*: :class:`GitRepo`
                 Interface to git repository
@@ -790,7 +779,16 @@ class LFCRepo(GitRepo):
                 Whether file is up-to-date
         :Versions:
             * 2022-12-28 ``@ddalle``: v1.0
+            * 2023-10-30 ``@ddalle``: v2.0
+                - recompute hash instead of comparing mod times
+                - allow input to be original file name (not .lfc)
+                - more generic
         """
+        # Get metadata file names
+        flfc = self.genr8_lfc_filename(flfc)
+        # Check if there's no .lfc file
+        if not os.path.isfile(flfc):
+            return False
         # Get info
         lfcinfo = self.read_lfc_file(flfc)
         # Get file name
@@ -798,14 +796,22 @@ class LFCRepo(GitRepo):
         # Check if file present
         if not os.path.isfile(fname):
             return False
+        # Get anticipated file size
+        lfcsize = lfcinfo.get("size", 0)
         # Get file infos
-        dinfo = os.stat(flfc)
         finfo = os.stat(fname)
-        # Check if *fname* is newer
-        if finfo.st_mtime > dinfo.st_mtime:
+        # Check for matching size
+        if finfo.st_size != lfcsize:
             return False
-        # Check cache
-        return self._check_cache(lfcinfo)
+        # Check if file is in cache
+        if not self._check_cache(lfcinfo):
+            return False
+        # Gemerate hash
+        hash1 = self.genr8_hash(fname)
+        # Hahs from info file
+        hashinfo = lfcinfo.get("sha256", lfcinfo.get("md5"))
+        # Check if file is the same
+        return hash1 == hashinfo
 
     def check_cache(self, flfc: str):
         r"""Check if large file is in local cache
