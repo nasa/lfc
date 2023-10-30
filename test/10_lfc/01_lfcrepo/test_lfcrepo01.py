@@ -21,6 +21,8 @@ from lfc.cli import (
 )
 from lfc.lfcrepo import (
     GitutilsFileNotFoundError,
+    GitutilsKeyError,
+    GitutilsValueError,
     LFCCheckoutError,
     LFCRepo
 )
@@ -310,6 +312,24 @@ def test_repo05():
     # Find files based on pattern w/o .lfc
     fnames = repo.find_lfc_files(fname01)
     assert fnames == [f"{fname01}.lfc"]
+    # Get config setting
+    cfg_output = repo.lfc_config_get("core.remote")
+    assert cfg_output == "hub"
+    # Invalid section
+    with pytest.raises(GitutilsKeyError):
+        repo.lfc_config_get("nope.remote")
+    # Invalid variable in valid section
+    with pytest.raises(GitutilsKeyError):
+        repo.lfc_config_get("core.nope")
+    # Invalid name (no period)
+    with pytest.raises(GitutilsValueError):
+        repo.lfc_config_get("remote")
+    # Set on invaild section
+    with pytest.raises(GitutilsKeyError):
+        repo.lfc_config_set("nope.remote", "something")
+    # Set some variable we're not using
+    repo.lfc_config_set("core.something", True)
+    assert repo.lfc_config_get("core.something") is True
 
 
 # Test lfc-checkout

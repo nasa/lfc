@@ -1093,7 +1093,7 @@ class LFCRepo(GitRepo):
                 "No option '%s' in large file config section '%s'" %
                 (opt, section))
         # Get it
-        return config.get(section, opt)
+        return self._from_ini(config.get(section, opt))
 
     def _split_fullopt(self, fullopt: str):
         r"""Split full option name into section and option"""

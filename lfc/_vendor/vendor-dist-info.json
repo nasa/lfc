@@ -2,10 +2,10 @@
     "gitutils": {
         "url": "ssh://linux252/nobackup/ddalle/cape/hub/src/gitutils.git",
         "vcs_info": {
-            "commit_id": "086f2939302452fca023cb302185cff9f8e5335a",
+            "commit_id": "45ab0e2fb6e17a3ded080388df894ed16db79125",
             "vcs": "git"
         },
-        "version": " 1.1.0"
+        "version": " 1.1.1"
     },
     "argread": {
         "url": "ssh://pfe/nobackupp16/ddalle/cape/hub/src/argread.git",

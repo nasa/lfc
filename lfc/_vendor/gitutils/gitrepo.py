@@ -988,6 +988,19 @@ class GitRepo(object):
         """
         return self.check_o(["git", "config", f"{sec}.{opt}"]).strip()
 
+    def _from_ini(self, val):
+        r"""Convert an INI-style configuration value to Python
+
+        Converts ``"true"`` -> ``True``
+        """
+        # Check for special cases
+        if val == "true":
+            return True
+        elif val == "false":
+            return False
+        # Otherwise return as-is
+        return val
+
     def _to_ini(self, val) -> str:
         r"""Convert a Python value to INI-style configuration
 

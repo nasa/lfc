@@ -189,6 +189,9 @@ def test_repo05():
     assert repo._to_ini("normal") == "normal"
     assert repo._to_ini(True) == "true"
     assert repo._to_ini(False) == "false"
+    assert repo._from_ini("true") is True
+    assert repo._from_ini("false") is False
+    assert repo._from_ini("fang") == "fang"
 
 
 # Wrapper
