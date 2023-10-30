@@ -231,6 +231,14 @@ class LFCRepo(GitRepo):
         # Strip .dvc if necessary
         fname = self.genr8_lfc_ofilename(fname)
         flfc = self.genr8_lfc_filename(fname)
+        # Check if it's a folder
+        if os.path.isdir(fname):
+            # Recurse
+            for fj in os.listdir(fname):
+                # Add individual files
+                self._lfc_add(os.path.join(fname, fj))
+            # Don't continue with original dir
+            return
         # Make sure main file is ignored
         self._ignore(fname)
         # Current terminal width

@@ -271,6 +271,28 @@ def test_repo04():
     assert os.path.isdir(lfccache)
     os.rmdir(lfccache)
     os.rename(".lfccache", lfccache)
+    # Create a folder with three files
+    os.mkdir("data")
+    for j in range(1, 4):
+        fj = os.path.join("data", f"f{j}.dat")
+        with open(fj, 'wb') as fp:
+            fp.write(os.urandom(32))
+    # Add all the files at once (hopefully)
+    repo.lfc_add("data")
+    # Make sure all the files are there
+    for j in range(1, 4):
+        fj = os.path.join("data", f"f{j}.dat.lfc")
+        assert os.path.isfile(fj)
+    # Push the files
+    repo.lfc_push("data")
+    # Path to remote cache
+    remotecache = repo.get_lfc_remote_url("hub")
+    # Check if all the hash files were pushed
+    for j in range(1, 4):
+        fj = os.path.join("data", f"f{j}.dat")
+        fhash = repo.get_lfc_hash(fj)
+        frj = os.path.join(remotecache, fhash[:2], fhash[2:])
+        assert os.path.isfile(frj)
 
 
 # Tests of basic operations

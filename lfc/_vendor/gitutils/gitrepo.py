@@ -288,7 +288,7 @@ class GitRepo(object):
                 f"in repo {os.path.basename(self.gitdir)}")
 
    # --- Status Operations ---
-    def check_ignore(self, fname):
+    def check_ignore(self, fname: str) -> bool:
         r"""Check if *fname* is (or would be) ignored by git
 
         :Call:
@@ -309,7 +309,7 @@ class GitRepo(object):
         # If ignored, return code is 0
         return ierr == 0
 
-    def check_track(self, fname):
+    def check_track(self, fname: str) -> bool:
         r"""Check if a file is tracked by git
 
         :Call:
@@ -329,6 +329,41 @@ class GitRepo(object):
         stdout = self.check_o(["git", "ls-files", fname])
         # If tracked, it will be listed in stdout
         return stdout.strip() != ""
+
+    def status(self, *fnames) -> dict:
+        r"""Check status of file(s) or whole repo
+
+        :Call:
+            >>> statusdict = repo.status(*fnames)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *fnames*: :class:`tuple`\ [:class:`str`]
+                File name(s); if empty, show status of entire repo
+        :Outputs:
+            *statusdict*: :class:`dict`\ [:class:`str`]
+                Two-letter status code for each modified file
+        :Versions:
+            * 2023-10-30 ``@ddalle``: v1.0
+        """
+        # Only on working repo
+        self.assert_working()
+        # Structure a command
+        cmd = ["git", "status", "-s"]
+        cmd.extend(fnames)
+        # Run status command
+        stdout = self.check_o(cmd).strip()
+        # Get status for each line
+        statusdict = {}
+        # Loop through lines
+        for line in stdout.split("\n"):
+            # Split status and file name
+            status = line[:2]
+            fname = line.rstrip()[3:]
+            # Save it
+            statusdict[fname] = status
+        # Output
+        return statusdict
 
    # --- Log operations ---
     def get_ref(self, ref="HEAD"):

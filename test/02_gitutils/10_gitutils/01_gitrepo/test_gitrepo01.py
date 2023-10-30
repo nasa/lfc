@@ -53,6 +53,11 @@ def test_repo01():
     # Add a file
     fname = COPY_FILES[0]
     repo.add(*COPY_FILES)
+    # Show status
+    statusdict = repo.status()
+    # Test result
+    assert fname in statusdict
+    assert statusdict[fname] == "A "
     # Issue a commit
     repo.commit("Initial commit", a=True)
     # Test contents of "show"
@@ -221,10 +226,10 @@ def test_fullrepo01():
     remotes = repo.get_remotes()
     # Find the one that points to pfe
     for remote, url in remotes.items():
-        if url.startswith("pfe") and url.endswith(".git"):
+        if url.startswith("linux252") and url.endswith(".git"):
             break
     else:
-        raise ValueError("No pfe remote found")
+        raise ValueError("No linux252 remote found")
     # Connect to hub
     repo = GitRepo(url)
     # This should be a bare repo
@@ -244,8 +249,8 @@ def test_gitrepo01():
     path = _assemble_path(None, os.getcwd())
     assert path == os.getcwd()
     # Assemble a remote path
-    path = _assemble_path("pfe", ".ssh")
-    assert path == "pfe:.ssh"
+    path = _assemble_path("linux252", ".ssh")
+    assert path == "linux252:.ssh"
     # Default git ref
     assert _safe_ref() == "HEAD"
 
