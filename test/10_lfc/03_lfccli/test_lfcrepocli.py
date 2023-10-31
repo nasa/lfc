@@ -1,7 +1,6 @@
 
 # Standard library
 import os
-import shutil
 import sys
 from subprocess import call
 
@@ -9,13 +8,13 @@ from subprocess import call
 import testutils
 
 # Local imports
+from lfc.__main__ import main
 from lfc.cli import (
     IERR_ARGS,
     IERR_CMD,
     lfc_config,
     lfc_remote,
-    lfc_show,
-    main
+    lfc_show
 )
 from lfc.lfcrepo import (
     LFCRepo
@@ -128,8 +127,8 @@ def test_cli02():
     ierr = main()
     assert ierr == IERR_CMD
     # Test error catching
-    sys.argv = ["lfc", "config", "get", "missingsection.name"]
-    ierr = main()
+    cmd = ["lfc", "config", "get", "missingsection.name"]
+    ierr = call([sys.executable, "-m"] + cmd)
     assert ierr
 
 
