@@ -363,6 +363,8 @@ class LFCRepo(GitRepo):
     def _lfc_push_ssh(self, fhash, remote, fname):
         # Get source file
         fsrc = os.path.join(self.get_cachedir(), fhash[:2], fhash[2:])
+        # Expand remote
+        remote = self.resolve_lfc_remote_name(remote)
         # Get remote location
         fremote = self.get_lfc_remote_url(remote)
         # Get parts of remote
@@ -380,9 +382,9 @@ class LFCRepo(GitRepo):
         # Test if file exists
         if portal.ssh.isfile(ftarg):
             # Truncate long file name
-            f1 = self._trunc8_fname(fname, 40)
+            f1 = self._trunc8_fname(fname, 26 + len(remote))
             # Up-to-date
-            print("Remote cache for file '%s' is up to date" % f1)
+            print(f"[{remote}] cache for '{f1}' up-to-date")
         else:
             # Upload it
             portal.put(fsrc, ftarg, fprog=fname)
@@ -447,6 +449,10 @@ class LFCRepo(GitRepo):
         fcache = os.path.join(self.get_cachedir(), fhash[:2], fhash[2:])
         # Check if file is present in the cache
         if os.path.isfile(fcache):
+            # Status update
+            f1 = self._trunc8_fname(flarge, 17)
+            # Status update
+            print(f"{f1} [local]")
             # Done
             return IERR_OK
         # Get remote location
@@ -511,6 +517,10 @@ class LFCRepo(GitRepo):
             # Status update and exit
             print("Remote cache missing file '%s'" % f1)
             return IERR_FILE_NOT_FOUND
+        # Truncate long file name
+        f1 = self._trunc8_fname(fname, len(remote) + 14)
+        # Status update
+        print(f"{f1} [{remote} -> local]")
         # Copy file
         shutil.copy(fsrc, ftarg)
         return IERR_OK
