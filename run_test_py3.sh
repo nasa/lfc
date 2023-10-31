@@ -5,7 +5,8 @@ PKG=lfc
 
 # Run tests
 python3 -m pytest \
-    "test/10_lfc" \
+    "test/10_lfc/01_lfcrepo" \
+    "test/10_lfc/03_lfccli" \
     --junitxml=test/junit.xml \
     --cov=$PKG \
     --pdb \

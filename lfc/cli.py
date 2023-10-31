@@ -184,7 +184,7 @@ def main():
         # Unrecognized function
         print("Unexpected command '%s'" % cmdname)
         print("Options are: " + " | ".join(list(CMD_DICT.keys())))
-        return 0
+        return IERR_CMD
     # Run function
     try:
         ierr = func(*a[1:], **kw)
