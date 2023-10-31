@@ -146,11 +146,3 @@ def test_repo02():
     # Try to pull it
     ierr = repo._lfc_fetch_ssh(fhash, REMOTE, fname02)
     assert ierr != 0
-
-
-# lfc-remote details
-@testutils.run_sandbox(__file__, fresh=False)
-def test_reporemote01():
-    # Enter the main repo
-    os.chdir(REPO_NAME)
-    #
