@@ -2,6 +2,7 @@
 # Standard library
 import os
 import shutil
+import socket
 from subprocess import call
 
 # Third-party
@@ -300,6 +301,10 @@ def test_repo04():
 # Tests of basic operations
 @testutils.run_sandbox(__file__, fresh=False)
 def test_repo05():
+    # Paths to working and bare repo
+    sandbox = os.getcwd()
+    barerepo = os.path.join(sandbox, f"{REPO_NAME}.git")
+    remotecache = os.path.join(barerepo, "cache")
     # Go into working folder
     os.chdir(REPO_NAME)
     # Instantiate repo
@@ -327,9 +332,31 @@ def test_repo05():
     # Set on invaild section
     with pytest.raises(GitutilsKeyError):
         repo.lfc_config_set("nope.remote", "something")
+    # Get URL to invalid remote
+    with pytest.raises(GitutilsKeyError):
+        repo.get_lfc_remote_url("somewhere")
     # Set some variable we're not using
     repo.lfc_config_set("core.something", True)
     assert repo.lfc_config_get("core.something") is True
+    # Add a second remote using ../repo.git
+    repo.set_lfc_remote("local", f"../{REPO_NAME}.git/cache")
+    # Test the actual path to "local"
+    url_local = repo.get_lfc_remote_url("local")
+    assert url_local == remotecache
+    # Remove the new ../repo.git remote
+    repo.rm_lfc_remote("local")
+    # Trying again should produce an error
+    with pytest.raises(GitutilsKeyError):
+        repo.rm_lfc_remote("local")
+    # Add another remote that uses SSH but points locally
+    if os.name != "nt":
+        # Set up SSH to local host (nonsense on Windows)
+        host = socket.gethostname()
+        repo.set_lfc_remote("localhost", f"{host}:{remotecache}")
+        # Get the URL to this remote
+        url_localhost = repo.get_lfc_remote_url("localhost")
+        # This should point to local path w/o SSH reference
+        assert url_localhost == remotecache
 
 
 # Test lfc-checkout

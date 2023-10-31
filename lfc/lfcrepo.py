@@ -1269,27 +1269,18 @@ class LFCRepo(GitRepo):
         assert_isinstance(url, str, "URL for LFC remote %s" % remote)
         # Split into parts
         host, path = shellutils.identify_host(url)
+        # LFC remotes always stored as POSIX; convert to system path
+        if host is None:
+            path = path.replace('/', os.sep)
         # Check for relative URL or remote host that matches current
         if host is None and not os.path.isabs(path):
-            # Remote given relative to the .lfc folder (not absolute)
-            lfcdir = self.get_lfcdir()
             # This won't work on a bare repo
-            path = os.path.join(lfcdir, path)
+            path = os.path.join(self.gitdir, path)
             # Get rid of ../..
             url = os.path.realpath(path)
-        elif host is not None:
-            # Get target host to see if it matches the current one
-            parts = url.split("/")
-            host = parts[2]
-            # Check for match
-            if _check_host(host):
-                # Use local path (absolute)
-                local_url = path
-                local_par = os.path.dirname(local_url)
-                # Test if it exists
-                if os.path.isdir(local_url) or os.path.isdir(local_par):
-                    # Use local remote instead of remote
-                    url = local_url
+        elif host is not None and _check_host(host):
+            # Apparent SSH, but host is current machine
+            url = path.replace("/", os.sep)
         # Output
         return url.rstrip("/")
 
