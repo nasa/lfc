@@ -24,7 +24,7 @@ from configparser import ConfigParser
 import yaml
 
 # Local imports
-from .lfcerror import LFCCheckoutError
+from .lfcerror import LFCCheckoutError, LFCValueError
 from ._vendor.gitutils._vendor import shellutils
 from ._vendor.gitutils.giterror import (
     GitutilsFileNotFoundError,
@@ -219,15 +219,19 @@ class LFCRepo(GitRepo):
         :Versions:
             * 2022-12-28 ``@ddalle``: v1.0
         """
+        # Get mode
+        mode = kw.get("mode", 1)
         # Loop through files
         for fname in fnames:
             # Expand
             fglob = glob.glob(fname)
             # Loop through matches
             for fj in fglob:
-                self._lfc_add(fj)
+                self._lfc_add(fj, mode)
 
-    def _lfc_add(self, fname: str):
+    def _lfc_add(self, fname: str, mode=1):
+        # Validate mode
+        _valid8_mode(mode)
         # Strip .dvc if necessary
         fname = self.genr8_lfc_ofilename(fname)
         flfc = self.genr8_lfc_filename(fname)
@@ -264,9 +268,10 @@ class LFCRepo(GitRepo):
         # Write LFC metadata stub file
         with open(flfc, "w") as fp:
             fp.write("outs:\n")
-            fp.write("- sha256: %s\n" % fhash)
-            fp.write("  size: %i\n" % fsize)
-            fp.write("  path: %s\n" % os.path.basename(fname))
+            fp.write(f"- sha256: {fhash}")
+            fp.write(f"  size: {fsize}")
+            fp.write(f"  path: {os.path.basename(fname)}")
+            fp.write(f"  mode: {mode}")
         # Get cache location
         cachedir = self.get_cachedir()
         # Subdir
@@ -329,8 +334,11 @@ class LFCRepo(GitRepo):
         """
         # Get remote
         remote = kw.get("remote", kw.get("r"))
+        # Select mode to use
+        mode = kw.get("mode")
+        _valid8n_mode(mode)
         # Expand file list
-        lfcfiles = self.genr8_lfc_glob(*fnames)
+        lfcfiles = self.genr8_lfc_glob(*fnames, mode=mode)
         # Loop through files
         for flfc in lfcfiles:
             # Push
@@ -726,8 +734,34 @@ class LFCRepo(GitRepo):
         # Get the outputs
         return info["outs"][0]
 
+    def read_lfc_mode(self, fname: str, ref=None):
+        r"""Read LFC file mode for a tracked file
+
+        :Call:
+            >>> mode = repo.read_lfc_mode(fname, ref=None)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *fname*: :class:`str`
+                Name of original file or large file stub
+            *ref*: {``None``} | :class:`str`
+                Optional git reference (default ``HEAD`` on bare repo)
+        :Outputs:
+            *mode*: ``1`` | ``2``
+                LFC file mode:
+
+                * ``1``: Only push/pull file on-demand
+                * ``2``: Automatically push/pull most recent version
+        :Versions:
+            * 2023-11-08 ``@ddalle``: v1.0
+        """
+        # Read the file
+        lfcinfo = self.read_lfc_file(fname)
+        # Get mode
+        return lfcinfo.get("mode", 1)
+
    # --- LFC search ---
-    def find_lfc_files(self, pattern=None, ext=None, **kw) -> list:
+    def find_lfc_files(self, pattern=None, ext=None, mode=None, **kw) -> list:
         r"""Find all large file stubs
 
         :Call:
@@ -748,6 +782,8 @@ class LFCRepo(GitRepo):
             * 2023-10-26 ``@ddalle``: v2.0
                 - use ``ls_tree()`` instead of calling ``git ls-files``
                 - works with ``lfc add data/`` or similar
+
+            * 2023-11-08 ``@ddalle``: v2.1; add *mode*
         """
         # Get extension
         if ext is None:
@@ -771,9 +807,34 @@ class LFCRepo(GitRepo):
                 if not frel.startswith("..") and (frel not in all_files):
                     all_files.append(frel)
         # Filter against the pattern
-        return fnmatch.filter(all_files, pat)
+        lfcmatches = fnmatch.filter(all_files, pat)
+        lfcfiles = []
+        # Loop through matches
+        for flfc in lfcmatches:
+            # Check file mode
+            modej = self.read_lfc_mode(flfc)
+            # Check if it matches target
+            if (mode is None) or (mode == modej):
+                lfcfiles.append(flfc)
+        # Output
+        return lfcfiles
 
-    def genr8_lfc_glob(self, *fnames):
+    def genr8_lfc_glob(self, *fnames, mode=None):
+        r"""Generate list of ``.lfc`` files matchin one or more pattern
+
+        :Call:
+            >>> lfcfiles = repo.genr8_lfc_glob(*fnames, mode=None)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *fnames*: :class:`tuple`\ [:class:`str`]
+                List of file name patterns to search for
+            *mode*: {``None``} | ``1`` | ``2``
+                LFC file mode to search for
+        :Outputs:
+            *lfcfiles: :class:`list`\ [:class:`str`]
+                List of matching ``.lfc`` files
+        """
         # Default to (None,) if no inputs
         patterns = (None,) if len(fnames) == 0 else fnames
         # Initialize glob
@@ -781,7 +842,7 @@ class LFCRepo(GitRepo):
         # Loop through patterns
         for pat in patterns:
             # Find matches
-            fglobj = self.find_lfc_files(pat)
+            fglobj = self.find_lfc_files(pat, mode=mode)
             # Append to overall list
             for fj in fglobj:
                 # Check for duplicates from previous *pat*
@@ -1476,3 +1537,20 @@ def _merge_caches(dvccache: str, lfccache: str):
             print("{.dvc -> .lfc}/cache/" + p1)
             # Move the whole folder if no conflict w/ .lfc/cache
             os.rename(dvcpart, lfcpart)
+
+
+def _valid8n_mode(mode=None):
+    # Allow mode=None
+    if mode is None:
+        return
+    # Otherwise only 1 | 2
+    _valid8_mode(mode)
+
+
+def _valid8_mode(mode=1):
+    # Check type
+    assert_isinstance(mode, int, "LFC file mode")
+    # Check value
+    if mode not in (1, 2):
+        raise LFCValueError(
+            f"Unknown LFC file mode {mode}; accepted values are: 1 | 2")

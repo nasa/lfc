@@ -21,3 +21,7 @@ class LFCCheckoutError(SystemError, GitutilsError):
     Usually raised if an ``lfc checkout`` would delete an actual large
     file that is not in the cache"""
     pass
+
+
+class LFCValueError(ValueError, GitutilsError):
+    pass
