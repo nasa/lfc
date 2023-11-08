@@ -758,7 +758,7 @@ class LFCRepo(GitRepo):
         # Read the file
         lfcinfo = self.read_lfc_file(fname)
         # Get mode
-        return lfcinfo.get("mode", 1)
+        return int(lfcinfo.get("mode", 1))
 
    # --- LFC search ---
     def find_lfc_files(self, pattern=None, ext=None, mode=None, **kw) -> list:

@@ -352,7 +352,7 @@ class GitRepo(object):
         cmd = ["git", "status", "-s"]
         cmd.extend(fnames)
         # Run status command
-        stdout = self.check_o(cmd).strip()
+        stdout = self.check_o(cmd).rstrip()
         # Get status for each line
         statusdict = {}
         # Loop through lines

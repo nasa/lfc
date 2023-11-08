@@ -6,7 +6,7 @@ import sys
 # Local imports
 from .lfcerror import GitutilsError
 from .lfcrepo import LFCRepo
-from ._vendor import argread
+from ._vendor.argread import ArgReader
 
 
 # Help message
@@ -18,6 +18,23 @@ HELP_LFC = r"""GitUtils and Large File Control control (lfc)
 
         $ lfc CMD [OPTIONS]
 """
+
+
+# Customized CLI parser
+class LFCArgParser(ArgReader):
+    # No attributes
+    __slots__ = ()
+
+    # Options that never take a value
+    _optlist_noval = (
+        "d",
+        "default",
+    )
+
+    # Options that convert from string
+    _optconverters = {
+        "mode": int,
+    }
 
 
 # Commands for ``lfc remote``
@@ -168,8 +185,10 @@ CMD_DICT = {
 
 # Main function
 def main():
+    # Create parser
+    parser = LFCArgParser()
     # Parse args
-    a, kw = argread.readkeys(sys.argv)
+    a, kw = parser.parse()
     kw.pop("__replaced__", None)
     # Check for no commands
     if len(a) == 0:
