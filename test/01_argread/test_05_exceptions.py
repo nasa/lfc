@@ -18,5 +18,5 @@ def test_bad_args():
 
 
 def test_empty_argv():
-    with pytest.raises(IndexError):
+    with pytest.raises(TypeError):
         a, kw = readkeys([])

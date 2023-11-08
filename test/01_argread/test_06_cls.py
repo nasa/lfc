@@ -1,18 +1,22 @@
 
 
 # Local
-from lfc._vendor.argread import ArgumentReader
+from lfc._vendor.argread import ArgReader, FlagsArgReader
+
+
+# Parser w/ no ``a=1`` keys
+class DashArgReader(ArgReader):
+    __slots__ = ()
+    equal_sign_key = False
+    single_dash_split = True
+    single_dash_lastkey = False
 
 
 def test_cls01():
     # Create a parser
-    parser = ArgumentReader(
-        equal_sign_key=False)
+    parser = DashArgReader()
     # Parse arguments
-    a, kw = parser.parse(
-        ["p", "a=True", "-cj"],
-        single_dash_split=True,
-        single_dash_lastkey=False)
+    a, kw = parser.parse(["p", "a=True", "-cj"])
     # Parse
     assert a == ["a=True"]
     assert kw == {
@@ -24,13 +28,9 @@ def test_cls01():
 
 def test_cls02():
     # Create a parser
-    parser = ArgumentReader(
-        equal_sign_key=False)
+    parser = FlagsArgReader()
     # Parse arguments
-    a, kw = parser.parse(
-        ["p", "a=1", "-cj"],
-        single_dash_split=True,
-        equal_sign_key=True)
+    a, kw = parser.parse(["p", "a=1", "-cj"])
     # Parse
     assert a == []
     assert kw == {
