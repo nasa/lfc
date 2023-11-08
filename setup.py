@@ -18,7 +18,8 @@ setup(
     description="Git add-on for large file control",
     entry_points={
         "console_scripts": [
-            "lfc=lfc.cli:main"
+            "lfc=lfc.cli:main",
+            "git-lfc-clone=lfc.lfcclone:main",
         ]
     },
     version="1.0.0rc2")

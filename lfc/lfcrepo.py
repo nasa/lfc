@@ -216,6 +216,7 @@ class LFCRepo(GitRepo):
                 Interface to git repository
         """
         self.lfc_install_post_merge(*a, **kw)
+        self.lfc_install_pre_push(*a, **kw)
 
     def lfc_install_post_merge(self, *a, **kw):
         r"""Install ``post-merge`` hook to auto-pull mode=2 files
@@ -236,8 +237,36 @@ class LFCRepo(GitRepo):
         fhook = os.path.join(hooksdir, "post-merge")
         # Write file
         with open(fhook, 'w') as fp:
-            fp.write("/bin/bash\n\n")
-            fp.write(f"{sys.executable} -m lfc pull -2\n")
+            fp.write("#!/bin/bash\n\n")
+            fp.write("lfc pull -2\n")
+        # Get current file's permissions
+        fmod = os.stat(fhook).st_mode
+        # Make it executable
+        fmod = fmod | 0o100
+        # Reset it
+        os.chmod(fhook, fmod)
+
+    def lfc_install_pre_push(self, *a, **kw):
+        r"""Install ``pre-push`` hook to auto-push some files
+
+        :Call:
+            >>> repo.lfc_install_pre_push()
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+        """
+        # This should only be run on working repo
+        self.assert_working()
+        # Get location of configuration dir
+        gitdir = self.get_configdir()
+        # Location to hooks dir
+        hooksdir = os.path.join(gitdir, "hooks")
+        # Location to "post-merge" hook
+        fhook = os.path.join(hooksdir, "pre-push")
+        # Write file
+        with open(fhook, 'w') as fp:
+            fp.write("#!/bin/bash\n\n")
+            fp.write("lfc push -2\n")
         # Get current file's permissions
         fmod = os.stat(fhook).st_mode
         # Make it executable
@@ -308,10 +337,10 @@ class LFCRepo(GitRepo):
         # Write LFC metadata stub file
         with open(flfc, "w") as fp:
             fp.write("outs:\n")
-            fp.write(f"- sha256: {fhash}")
-            fp.write(f"  size: {fsize}")
-            fp.write(f"  path: {os.path.basename(fname)}")
-            fp.write(f"  mode: {mode}")
+            fp.write(f"- sha256: {fhash}\n")
+            fp.write(f"  size: {fsize}\n")
+            fp.write(f"  path: {os.path.basename(fname)}\n")
+            fp.write(f"  mode: {mode}\n")
         # Get cache location
         cachedir = self.get_cachedir()
         # Subdir
@@ -492,6 +521,8 @@ class LFCRepo(GitRepo):
             self._lfc_checkout(fname)
 
     def _lfc_fetch(self, fname: str, remote=None):
+        # Resolve remote name
+        remote = self.resolve_lfc_remote_name(remote)
         # Get info
         lfcinfo = self.read_lfc_file(fname)
         # Get original file name
