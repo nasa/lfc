@@ -298,6 +298,50 @@ class LFCRepo(GitRepo):
             for fj in fglob:
                 self._lfc_add(fj, mode)
 
+    def lfc_set_mode(self, *fnames, **kw):
+        r"""Set LFC mode for one or more files
+
+        :Call:
+            >>> repo.lfc_set_mode(*fnames, **kw)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *fnames*: :class:`tuple`\ [:class:`str`]
+                Names or wildcard patterns of files to add using LFC
+        """
+        # Get mode
+        mode = kw.get("mode", 1)
+        # Loop through files
+        for fname in fnames:
+            # Expand
+            fglob = glob.glob(fname)
+            # Loop through matches
+            for fj in fglob:
+                self._lfc_set_mode(fj, mode)
+
+    def _lfc_set_mode(self, fname: str, mode=1):
+        # Only on working repos
+        self.assert_working()
+        # Validate mode
+        _valid8_mode(mode)
+        # Get .lfc file name
+        flfc = self.genr8_lfc_filename(fname)
+        # Open the file
+        lfcinfo = self.read_lfc_file(flfc)
+        # Set mode
+        lfcinfo["mode"] = mode
+        # Get stuff
+        fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
+        fsize = lfcinfo.get("size")
+        fpath = lfcinfo.get("path")
+        # Write LFC metadata stub file
+        with open(flfc, "w") as fp:
+            fp.write("outs:\n")
+            fp.write(f"- sha256: {fhash}\n")
+            fp.write(f"  size: {fsize}\n")
+            fp.write(f"  path: {fpath}\n")
+            fp.write(f"  mode: {mode}\n")
+
     def _lfc_add(self, fname: str, mode=1):
         # Validate mode
         _valid8_mode(mode)

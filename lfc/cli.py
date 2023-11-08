@@ -168,6 +168,15 @@ def lfc_replace_dvc(*a, **kw):
     repo.lfc_replace_dvc(*a, **kw)
 
 
+def lfc_set_mode(*a, **kw):
+    # Read the repo
+    repo = LFCRepo()
+    # Check for -2 -> mode=2
+    _parse_mode(kw)
+    # Set mode
+    repo.lfc_set_mode(*a, **kw)
+
+
 def lfc_show(*a, **kw):
     # Read the repo
     repo = LFCRepo()
@@ -206,6 +215,7 @@ CMD_DICT = {
     "push": lfc_push,
     "remote": lfc_remote,
     "replace-dvc": lfc_replace_dvc,
+    "set-mode": lfc_set_mode,
     "show": lfc_show,
 }
 
