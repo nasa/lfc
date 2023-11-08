@@ -4,7 +4,7 @@ r"""
 ``argread``: Parse command-line arguments and options
 ==========================================================
 
-This class provides the :class:`ArgumentReader` class, instances of
+This class provides the :class:`ArgReader` class, instances of
 which can be used to customize available command-line options for a
 given inteface.
 """
@@ -13,125 +13,62 @@ given inteface.
 import re
 import sys
 
+# Local imports
+from ._vendor.kwparse import (
+    KWTypeError,
+    KwargParser,
+    assert_isinstance
+)
+
 
 # Regular expression for options like "cdfr=1.3"
 REGEX_EQUALKEY = re.compile(r"(\w+)=([^=].*)")
 
 
-# Read keys
-def readkeys(argv=None):
-    r"""Parse args where ``-cj`` becomes ``cj=True``
-
-    :Call:
-        >>> a, kw = readkeys(argv=None)
-    :Inputs:
-        *argv*: {``None``} | :class:`list`\ [:class:`str`]
-            List of args other than ``sys.argv``
-    :Outputs:
-        *a*: :class:`list`\ [:class:`str`]
-            List of positional args
-        *kw*: :class:`dict`\ [:class:`str` | :class:`bool`]
-            Keyword arguments
-    :Versions:
-        * 2021-12-01 ``@ddalle``: v1.0
-    """
-    # Create parser
-    parser = ArgumentReader(single_dash_split=False)
-    # Parse args
-    return parser.parse(argv)
-
-
-# Read flags
-def readflags(argv=None):
-    r"""Parse args where ``-cj`` becomes ``c=True, j=True``
-
-    :Call:
-        >>> a, kw = readflags(argv=None)
-    :Inputs:
-        *argv*: {``None``} | :class:`list`\ [:class:`str`]
-            List of args other than ``sys.argv``
-    :Outputs:
-        *a*: :class:`list`\ [:class:`str`]
-            List of positional args
-        *kw*: :class:`dict`\ [:class:`str` | :class:`bool`]
-            Keyword arguments
-    :Versions:
-        * 2021-12-01 ``@ddalle``: v1.0
-    """
-    # Create parser
-    parser = ArgumentReader(
-        single_dash_split=True,
-        single_dash_lastkey=False)
-    # Parse args
-    return parser.parse(argv)
-
-
-# Read flags like ``tar`
-def readflagstar(argv=None):
-    r"""Parse args where ``-cf a`` becomes ``c=True, f="a"``
-
-    :Call:
-        >>> a, kw = readflags(argv=None)
-    :Inputs:
-        *argv*: {``None``} | :class:`list`\ [:class:`str`]
-            List of args other than ``sys.argv``
-    :Outputs:
-        *a*: :class:`list`\ [:class:`str`]
-            List of positional args
-        *kw*: :class:`dict`\ [:class:`str` | :class:`bool`]
-            Keyword arguments
-    :Versions:
-        * 2021-12-01 ``@ddalle``: v1.0
-    """
-    # Create parser
-    parser = ArgumentReader(
-        single_dash_split=True,
-        single_dash_lastkey=True)
-    # Parse args
-    return parser.parse(argv)
+# Custom error class
+class ArgReadError(Exception):
+    pass
 
 
 # Argument read class
-class ArgumentReader(object):
-    r"""Class to parse arguments
+class ArgReader(KwargParser):
+    r"""Class to parse command-line interface arguments
 
     :Call:
-        >>> parser = ArgumentReader(**kw)
-    :Inputs:
-        *single_dash_split*: ``True`` | {``False``}
-            Option to split ``-cj`` into ``c=True, j=True``
-        *single_dash_lastkey*: ``True`` | {``False``}
-            Option to interpret ``-cf 1`` as ``c=True, f="1"``
-        *equal_sign_key*: {``True``} | ``False``
-            Option to interpret ``a=1`` as ``a="1"`` (keyword)
-        *restrict*: ``True`` | {``False``}
-            Option to only allow declared CLI options
+        >>> parser = ArgReader(**kw)
     :Outputs:
-        *parser*: :class:`ArgumentReader`
+        *parser*: :class:`ArgReader`
             Instance of command-line argument parser
     """
+   # --- Class attributes ---
     # List of instance attributes
     __slots__ = (
         "argv",
-        "args",
-        "kwargs",
         "prog",
-        "equal_sign_key",
         "kwargs_sequence",
         "kwargs_replaced",
         "kwargs_single_dash",
         "kwargs_double_dash",
         "kwargs_equal_sign",
         "param_sequence",
-        "single_dash_split",
-        "single_dash_lastkey",
-        "_optlist",
-        "_optlist_noval",
-        "_optconverters",
-        "_restrict",
     )
 
-    def __init__(self, **kw):
+    # Options that cannot take values
+    _optlist_noval = ()
+
+    # Enforce _optlist
+    _restrict = False
+
+    # Options
+    single_dash_split = False
+    single_dash_lastkey = False
+    equal_sign_key = True
+
+    # Base exception class
+    exc_cls = ArgReadError
+
+   # --- __dunder__ ---
+    def __init__(self):
         r"""Initialization method
 
         :Versions:
@@ -140,31 +77,21 @@ class ArgumentReader(object):
         # Initialize attributes
         self.argv = []
         self.prog = None
-        self.args = []
-        self.kwargs = {}
+        self.argvals = []
         self.kwargs_sequence = []
         self.kwargs_replaced = []
         self.kwargs_single_dash = {}
         self.kwargs_double_dash = {}
         self.kwargs_equal_sign = {}
         self.param_sequence = []
-        # Initialize option lists
-        self._optlist = set()
-        self._optlist_noval = set()
-        self._optconverters = {}
-        self._restrict = kw.pop("restrict", False)
-        # Parse modes
-        self.single_dash_split = kw.pop("single_dash_split", False)
-        self.single_dash_lastkey = kw.pop("single_dash_lastkey", False)
-        self.equal_sign_key = kw.pop("equal_sign_key", True)
 
-    def parse(self, argv=None, **kw):
+    def parse(self, argv=None):
         r"""Parse args
 
         :Call:
             >>> a, kw = parser.parse(argv=None)
         :Inputs:
-            *parser*: :class:`ArgumentReader`
+            *parser*: :class:`ArgReader`
                 Command-line argument parser
             *argv*: {``None``} | :class:`list`\ [:class:`str`]
                 Optional arguments to parse, else ``sys.argv``
@@ -182,28 +109,19 @@ class ArgumentReader(object):
         if argv is None:
             # Copy *sys.argv*
             argv = list(sys.argv)
-        elif not isinstance(argv, list):
-            # Wrong type
-            raise TypeError(
-                "Expected arg 'argv' to be type 'list'; " +
-                "got '%s'" % type(argv).__name__)
         else:
+            # Check type of *argv*
+            assert_isinstance(argv, list, "'argv'")
             # Check each arg is a string
             for j, arg in enumerate(argv):
                 # Check type
-                if isinstance(arg, str):
-                    continue
-                # Bad type
-                raise TypeError(
-                    ("Argument %i: expected type 'list' " % j) +
-                    ("but got '%s'" % type(arg).__name__))
+                assert_isinstance(arg, str, f"argument {j}")
             # Copy args
             argv = list(argv)
         # Save copy of args to *self*
         self.argv = list(argv)
         # (Re)initialize attributes storing parsed arguments
-        self.args = []
-        self.kwargs = {}
+        self.argvals = []
         self.kwargs_sequence = []
         self.kwargs_replaced = []
         self.kwargs_single_dash = {}
@@ -212,20 +130,10 @@ class ArgumentReader(object):
         self.param_sequence = []
         # Check for command name
         if len(argv) == 0:
-            raise IndexError("Expected at least one argv entry (program name)")
+            raise KWTypeError(
+                "Expected at least one argv entry (program name)")
         # Save command name
         self.prog = argv.pop(0)
-        # Global parse modes
-        splitflags = kw.get("single_dash_split")
-        lastflag = kw.get("single_dash_lastkey")
-        equalkey = kw.get("equal_sign_key")
-        # Save if needed
-        if splitflags is not None:
-            self.single_dash_split = not not splitflags
-        if lastflag is not None:
-            self.single_dash_lastkey = not not lastflag
-        if equalkey is not None:
-            self.equal_sign_key = not not equalkey
         # Loop until args are gone
         while argv:
             # Extract first argument
@@ -242,11 +150,6 @@ class ArgumentReader(object):
                 # Positional parameter
                 self.save_arg(val)
                 continue
-            # Get converter
-            convert_func = self._optconverters.get(key)
-            # Convert the value
-            if callable(convert_func):
-                val = convert_func(val)
             # Check option type: "-opt", "--opt", "opt=val"
             if prefix == "=":
                 # Equal-sign option
@@ -281,39 +184,34 @@ class ArgumentReader(object):
             else:
                 # Save ``True`` for ``--qsub``
                 save(key, True)
-        # Form output
-        a = list(self.args)
-        kw = dict(self.kwargs)
-        kw["__replaced__"] = [tuple(opt) for opt in self.kwargs_replaced]
-        # Output
-        return a, kw
+        # Output current values
+        return self.get_args()
 
-    def add_opt(self, opt: str, **kw):
-        r"""Add a recognized option to the list
+    # Return the args and kwargs
+    def get_args(self):
+        r"""Get full list of args and options from parsed inputs
 
         :Call:
-            >>> parser.add_opt(opt, noval)
-        :Inputs:
-            *parser*: :class:`ArgumentReader`
-                Command-line argument parser
-            *opt*: :class:`str`
-
+            >>> args, kwargs = parser.get_args()
+        :Outputs:
+            *args*: :class:`list`\ [:class:`str`]
+                List of positional parameter argument values
+            *kwargs*: :class:`dict`
+                Dictionary of named options and their values
         :Versions:
-            * 2023-09-29 ``@ddalle``: v1.0
+            * 2023-11-08 ``@ddalle``: v1.0
         """
-        # Get options
-        noval = kw.pop("noval", False)
-        convert_func = kw.pop("converter", None)
-        # Add option to list if parser only takes recognized vals
-        if self._restrict:
-            self._optlist.add(opt)
-        # Check for option that doesn't take a value
-        if noval:
-            self._optlist_noval.add(opt)
-        # Save conversion function
-        if callable(convert_func):
-            self._optconverters[opt] = convert_func
+        # Get list of arguments
+        args = list(self.argvals)
+        # Get full dictionary of outputs, applying defaults
+        kwargs = self.get_kwargs()
+        # Set __replaced__
+        kwargs["__replaced__"] = [
+            tuple(opt) for opt in self.kwargs_replaced]
+        # Output
+        return args, kwargs
 
+   # --- Parsers ---
     # Parse a single arg
     def _parse_arg(self, arg: str):
         r"""Parse type for a single CLI arg
@@ -321,7 +219,7 @@ class ArgumentReader(object):
         :Call:
             >>> prefix, key, val, flags = parser._parse_arg(arg)
         :Inputs:
-            *parser*: :class:`ArgumentReader`
+            *parser*: :class:`ArgReader`
                 Command-line argument parser
             *arg*: :class:`str`
                 Single arg to parse, usually from ``sys.argv``
@@ -396,13 +294,14 @@ class ArgumentReader(object):
         # Output
         return prefix, key, val, flags
 
+   # --- Arg/Option interface ---
     def save_arg(self, arg):
         r"""Save a positional argument
 
         :Call:
             >>> parser.save_arg(arg, narg=None)
         :Inputs:
-            *parser*: :class:`ArgumentReader`
+            *parser*: :class:`ArgReader`
                 Command-line argument parser
             *arg*: :class:`str`
                 Name/value of next parameter
@@ -417,7 +316,7 @@ class ArgumentReader(object):
         :Call:
             >>> parser.save_double_dash(k, v=True)
         :Inputs:
-            *parser*: :class:`ArgumentReader`
+            *parser*: :class:`ArgReader`
                 Command-line argument parser
             *k*: :class:`str`
                 Name of key to save
@@ -435,7 +334,7 @@ class ArgumentReader(object):
         :Call:
             >>> parser.save_equal_key(k, v)
         :Inputs:
-            *parser*: :class:`ArgumentReader`
+            *parser*: :class:`ArgReader`
                 Command-line argument parser
             *k*: :class:`str`
                 Name of key to save
@@ -453,7 +352,7 @@ class ArgumentReader(object):
         :Call:
             >>> parser.save_single_dash(k, v=True)
         :Inputs:
-            *parser*: :class:`ArgumentReader`
+            *parser*: :class:`ArgReader`
                 Command-line argument parser
             *k*: :class:`str`
                 Name of key to save
@@ -465,20 +364,113 @@ class ArgumentReader(object):
         self._save(k, v)
         self.kwargs_single_dash[k] = v
 
-    def _save(self, k, v):
+    def _save(self, rawopt: str, rawval):
         # Append to universal list of args
-        self.param_sequence.append((k, v))
+        self.param_sequence.append((rawopt, rawval))
         # Check option vs arg
-        if k is None:
+        if rawopt is None:
+            # Get index
+            j = len(self.argvals)
             # Save arg
-            self.args.append(v)
+            self.set_arg(j, rawval)
         else:
+            # Validate value
+            opt, val = self.validate_opt(rawopt, rawval)
             # Universal keyword arg sequence
-            self.kwargs_sequence.append((k, v))
+            self.kwargs_sequence.append((opt, val))
             # Check if a previous key
-            if k in self.kwargs:
+            if opt in self:
                 # Save to "replaced" options
-                self.kwargs_replaced.append((k, self.kwargs[k]))
+                self.kwargs_replaced.append((opt, self[opt]))
             # Save to current kwargs
-            self.kwargs[k] = v
+            self[opt] = val
+
+
+# Class with single_dash_split=False (default)
+class KeysArgReader(ArgReader):
+    __slots__ = ()
+    single_dash_split = False
+
+
+# Class with single_dash_split=True (flags)
+class FlagsArgReader(ArgReader):
+    __slots__ = ()
+    single_dash_split = True
+
+
+# Class with args like ``tar -cvf this.tar``
+class TarFlagsArgReader(ArgReader):
+    __slots__ = ()
+    single_dash_split = True
+    single_dash_lastkey = True
+
+
+# Read keys
+def readkeys(argv=None):
+    r"""Parse args where ``-cj`` becomes ``cj=True``
+
+    :Call:
+        >>> a, kw = readkeys(argv=None)
+    :Inputs:
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            List of args other than ``sys.argv``
+    :Outputs:
+        *a*: :class:`list`\ [:class:`str`]
+            List of positional args
+        *kw*: :class:`dict`\ [:class:`str` | :class:`bool`]
+            Keyword arguments
+    :Versions:
+        * 2021-12-01 ``@ddalle``: v1.0
+    """
+    # Create parser
+    parser = KeysArgReader()
+    # Parse args
+    return parser.parse(argv)
+
+
+# Read flags
+def readflags(argv=None):
+    r"""Parse args where ``-cj`` becomes ``c=True, j=True``
+
+    :Call:
+        >>> a, kw = readflags(argv=None)
+    :Inputs:
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            List of args other than ``sys.argv``
+    :Outputs:
+        *a*: :class:`list`\ [:class:`str`]
+            List of positional args
+        *kw*: :class:`dict`\ [:class:`str` | :class:`bool`]
+            Keyword arguments
+    :Versions:
+        * 2021-12-01 ``@ddalle``: v1.0
+    """
+    # Create parser
+    parser = FlagsArgReader()
+    # Parse args
+    return parser.parse(argv)
+
+
+# Read flags like ``tar`
+def readflagstar(argv=None):
+    r"""Parse args where ``-cf a`` becomes ``c=True, f="a"``
+
+    :Call:
+        >>> a, kw = readflags(argv=None)
+    :Inputs:
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            List of args other than ``sys.argv``
+    :Outputs:
+        *a*: :class:`list`\ [:class:`str`]
+            List of positional args
+        *kw*: :class:`dict`\ [:class:`str` | :class:`bool`]
+            Keyword arguments
+    :Versions:
+        * 2021-12-01 ``@ddalle``: v1.0
+    """
+    # Create parser
+    parser = TarFlagsArgReader()
+    # Parse args
+    return parser.parse(argv)
+
 
