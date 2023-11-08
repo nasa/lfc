@@ -23,5 +23,11 @@ class LFCCheckoutError(SystemError, GitutilsError):
     pass
 
 
+class LFCCloneError(SystemError, GitutilsError):
+    r"""Error class for lfc-clone commands
+    """
+    pass
+
+
 class LFCValueError(ValueError, GitutilsError):
     pass

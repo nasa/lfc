@@ -205,6 +205,46 @@ class LFCRepo(GitRepo):
             # Move the file
             self.mv(fdvc, flfc)
 
+   # --- LFC hooks ---
+    def lfc_install_hooks(self, *a, **kw):
+        r"""Install full set of git-hooks for this repo
+
+        :Call:
+            >>> repo.lfc_install_hooks()
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+        """
+        self.lfc_install_post_merge(*a, **kw)
+
+    def lfc_install_post_merge(self, *a, **kw):
+        r"""Install ``post-merge`` hook to auto-pull mode=2 files
+
+        :Call:
+            >>> repo.lfc_install_post_merge()
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+        """
+        # This should only be run on working repo
+        self.assert_working()
+        # Get location of configuration dir
+        gitdir = self.get_configdir()
+        # Location to hooks dir
+        hooksdir = os.path.join(gitdir, "hooks")
+        # Location to "post-merge" hook
+        fhook = os.path.join(hooksdir, "post-merge")
+        # Write file
+        with open(fhook, 'w') as fp:
+            fp.write("/bin/bash\n\n")
+            fp.write(f"{sys.executable} -m lfc pull -2\n")
+        # Get current file's permissions
+        fmod = os.stat(fhook).st_mode
+        # Make it executable
+        fmod = fmod | 0o100
+        # Reset it
+        os.chmod(fhook, fmod)
+
    # --- LFC add ---
     def lfc_add(self, *fnames, **kw):
         r"""Add one or more large files
@@ -427,13 +467,18 @@ class LFCRepo(GitRepo):
                 Interface to git repository
             *fnames*: :class:`tuple`\ [:class:`str`]
                 Names or wildcard patterns of files
+            *mode*: {``None``} | ``1`` | ``2``
+                LFC file mode:
         :Versions:
             * 2022-12-28 ``@ddalle``: v1.0
+            * 2023-11-08 ``@ddalle``: v1.1; add *mode*
         """
         # Get remote
         remote = kw.get("remote", kw.get("r"))
+        # Get mode
+        mode = kw.get("mode")
         # Expand list of files
-        lfcfiles = self.genr8_lfc_glob(*fnames)
+        lfcfiles = self.genr8_lfc_glob(*fnames, mode=mode)
         # Loop through matches
         for flfc in lfcfiles:
             # Pull

@@ -4,6 +4,7 @@ import os
 import sys
 
 # Local imports
+from .lfcclone import lfc_clone
 from .lfcerror import GitutilsError
 from .lfcrepo import LFCRepo
 from ._vendor.argread import ArgReader
@@ -94,6 +95,13 @@ def lfc_init(*a, **kw):
     repo.lfc_init(*a, **kw)
 
 
+def lfc_install_hooks(*a, **kw):
+    # Read the repo
+    repo = LFCRepo()
+    # Install hooks
+    repo.lfc_install_hooks(*a, **kw)
+
+
 def lfc_ls_files(*a, **kw):
     # Read the repo
     repo = LFCRepo()
@@ -106,6 +114,12 @@ def lfc_ls_files(*a, **kw):
 def lfc_pull(*a, **kw):
     # Read the repo
     repo = LFCRepo()
+    # Check for -2 or -1
+    for val in ("1", "2"):
+        # Transfer it to mode=1 or mode=2
+        if val in kw:
+            kw["mode"] = int(val)
+            kw.pop(val)
     # Push it
     repo.lfc_pull(*a, **kw)
 
@@ -171,9 +185,11 @@ def lfc_show(*a, **kw):
 # Command dictionary
 CMD_DICT = {
     "add": lfc_add,
+    "clone": lfc_clone,
     "checkout": lfc_checkout,
     "config": lfc_config,
     "init": lfc_init,
+    "install-hooks": lfc_install_hooks,
     "ls-files": lfc_ls_files,
     "pull": lfc_pull,
     "push": lfc_push,
