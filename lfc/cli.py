@@ -69,6 +69,30 @@ def lfc_add(*a, **kw):
     repo.lfc_add(*a, **kw)
 
 
+def lfc_autopull(*a, **kw):
+    # Read the repo
+    repo = LFCRepo()
+    # Get mode
+    mode = repo.get_lfc_autopull()
+    # Settings
+    kw.setdefault("quiet", True)
+    kw["mode"] = mode
+    # Push
+    repo.lfc_pull(*a, **kw)
+
+
+def lfc_autopush(*a, **kw):
+    # Read the repo
+    repo = LFCRepo()
+    # Get mode
+    mode = repo.get_lfc_autopush()
+    # Settings
+    kw.setdefault("quiet", True)
+    kw["mode"] = mode
+    # Push
+    repo.lfc_push(*a, **kw)
+
+
 def lfc_config(*a, **kw):
     # Read the repo
     repo = LFCRepo()
@@ -205,6 +229,8 @@ def _parse_mode(kw):
 # Command dictionary
 CMD_DICT = {
     "add": lfc_add,
+    "auto-pull": lfc_autopull,
+    "auto-push": lfc_autopush,
     "clone": lfc_clone,
     "checkout": lfc_checkout,
     "config": lfc_config,

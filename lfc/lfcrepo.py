@@ -235,10 +235,14 @@ class LFCRepo(GitRepo):
         hooksdir = os.path.join(gitdir, "hooks")
         # Location to "post-merge" hook
         fhook = os.path.join(hooksdir, "post-merge")
+        # Check for existing file
+        if os.path.assert_isfile(fhook):
+            print("hooks/post-merge hook already exists; aborting")
+            return
         # Write file
         with open(fhook, 'w') as fp:
             fp.write("#!/bin/bash\n\n")
-            fp.write("lfc pull -2\n")
+            fp.write("lfc auto-pull\n")
         # Get current file's permissions
         fmod = os.stat(fhook).st_mode
         # Make it executable
@@ -263,10 +267,14 @@ class LFCRepo(GitRepo):
         hooksdir = os.path.join(gitdir, "hooks")
         # Location to "post-merge" hook
         fhook = os.path.join(hooksdir, "pre-push")
+        # Check for existing file
+        if os.path.assert_isfile(fhook):
+            print("hooks/pre-push hook already exists; aborting")
+            return
         # Write file
         with open(fhook, 'w') as fp:
             fp.write("#!/bin/bash\n\n")
-            fp.write("lfc push -2\n")
+            fp.write("lfc auto-push\n")
         # Get current file's permissions
         fmod = os.stat(fhook).st_mode
         # Make it executable
@@ -1261,7 +1269,7 @@ class LFCRepo(GitRepo):
         self._add(fgitignore)
 
    # --- LFC config ---
-    def lfc_config_get(self, fullopt: str) -> str:
+    def lfc_config_get(self, fullopt: str, vdef=None) -> str:
         r"""Get an option from the large file client configuration
 
         :Call:
@@ -1273,12 +1281,14 @@ class LFCRepo(GitRepo):
                 Name of LFC config section
             *opt*: :class:`str`
                 Option in LFC config section to query
+            *vdef*: {``None``} | :class:`object`
+                Default value
         :Outputs:
             *val*: :class:`str`
                 Raw value of LCF config option
         :Raises:
             * :class:`GitutilsKeyError` if either *section* or *opt* is
-              missing from the LFC config
+              missing from the LFC config (unless *vdef* is set)
         :Versions:
             * 2022-12-27 ``@ddalle``: v1.0
         """
@@ -1292,11 +1302,51 @@ class LFCRepo(GitRepo):
                 "No large file config section '%s'" % section)
         # Check if option is present
         if opt not in config.options(section):
+            # Check for default
+            if vdef is not None:
+                return vdef
+            # Otherwise report an error
             raise GitutilsKeyError(
                 "No option '%s' in large file config section '%s'" %
                 (opt, section))
         # Get it
         return self._from_ini(config.get(section, opt))
+
+    def get_lfc_autopull(self) -> int:
+        r"""Get the LFC mode for auto-pull
+
+        * ``0``: do not auto-pull files
+        * ``1``: auto-pull all files
+        * ``2``: auto-pull all mode-2 files (default)
+
+        :Call:
+            >>> mode = repo.get_lfc_autopull()
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+        :Outputs:
+            *mode*: :class:`int`
+                Files of LCF files to automatically push
+        """
+        return int(self.lfc_config_get("core.autopull", vdef=2))
+
+    def get_lfc_autopush(self) -> int:
+        r"""Get the LFC mode for auto-push
+
+        * ``0``: do not auto-push files
+        * ``1``: auto-push all files
+        * ``2``: auto-push all mode-2 files (default)
+
+        :Call:
+            >>> mode = repo.get_lfc_autopush()
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+        :Outputs:
+            *mode*: :class:`int`
+                Files of LCF files to automatically push
+        """
+        return int(self.lfc_config_get("core.autopush", vdef=2))
 
     def _split_fullopt(self, fullopt: str):
         r"""Split full option name into section and option"""
