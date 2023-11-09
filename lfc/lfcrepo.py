@@ -458,6 +458,8 @@ class LFCRepo(GitRepo):
             self._lfc_push(flfc, remote)
 
     def _lfc_push(self, fname: str, remote=None):
+        # Resolve remote name
+        remote = self.resolve_lfc_remote_name(remote)
         # Get info
         lfcinfo = self.read_lfc_file(fname)
         # Get name of original file name (for progress indicator)
@@ -477,11 +479,11 @@ class LFCRepo(GitRepo):
         host, _ = shellutils.identify_host(fremote)
         # Check remote/local
         if host is None:
-            self._lfc_push_local(fhash, remote)
+            self._lfc_push_local(fhash, remote, flarge)
         else:
             self._lfc_push_ssh(fhash, remote, flarge)
 
-    def _lfc_push_ssh(self, fhash, remote, fname):
+    def _lfc_push_ssh(self, fhash, remote, fname, quiet=False):
         # Get source file
         fsrc = os.path.join(self.get_cachedir(), fhash[:2], fhash[2:])
         # Expand remote
@@ -502,15 +504,17 @@ class LFCRepo(GitRepo):
             portal.ssh.mkdir(ftargdir)
         # Test if file exists
         if portal.ssh.isfile(ftarg):
-            # Truncate long file name
-            f1 = self._trunc8_fname(fname, 26 + len(remote))
             # Up-to-date
-            print(f"[{remote}] cache for '{f1}' up-to-date")
+            if not quiet:
+                # Truncate long file name
+                f1 = self._trunc8_fname(fname, 6 + len(remote))
+                # Status update
+                print(f"{f1} [{remote}]")
         else:
             # Upload it
             portal.put(fsrc, ftarg, fprog=fname)
 
-    def _lfc_push_local(self, fhash, remote):
+    def _lfc_push_local(self, fhash, remote, fname, quiet=False):
         # Get remote location
         fremote = self.get_lfc_remote_url(remote)
         # Get source file
@@ -525,7 +529,18 @@ class LFCRepo(GitRepo):
         if not os.path.isdir(ftargdir):
             os.mkdir(ftargdir)
         # Test if file exists
-        if not os.path.isfile(ftarg):
+        if os.path.isfile(ftarg):
+            # Up-to-date
+            if not quiet:
+                # Truncate long file name
+                f1 = self._trunc8_fname(fname, 6 + len(remote))
+                # Status update
+                print(f"{f1} [{remote}]")
+        else:
+            # Truncate long file name
+            f1 = self._trunc8_fname(fname, len(remote) + 14)
+            # Status update
+            print(f"{f1} [local -> {remote}]")
             # Copy it
             shutil.copy(fsrc, ftarg)
 
@@ -564,7 +579,7 @@ class LFCRepo(GitRepo):
         if ierr == IERR_OK:
             self._lfc_checkout(fname)
 
-    def _lfc_fetch(self, fname: str, remote=None):
+    def _lfc_fetch(self, fname: str, remote=None, quiet=False):
         # Resolve remote name
         remote = self.resolve_lfc_remote_name(remote)
         # Get info
@@ -580,7 +595,8 @@ class LFCRepo(GitRepo):
             # Status update
             f1 = self._trunc8_fname(flarge, 17)
             # Status update
-            print(f"{f1} [local]")
+            if not quiet:
+                print(f"{f1} [local]")
             # Done
             return IERR_OK
         # Get remote location
@@ -698,10 +714,6 @@ class LFCRepo(GitRepo):
         up_to_date = self._lfc_status(fname)
         # Exit if file is up-to-date
         if up_to_date:
-            # Truncate long file names
-            f1 = self._trunc8_fname(fname, 20)
-            # Already up to date!
-            print("File '%s' up-to-date" % f1)
             return
         # Check for existing file that's not up-to-date
         if os.path.isfile(fname):
