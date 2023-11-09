@@ -168,6 +168,8 @@ class ArgReader(KwargParser):
                 # This is interpreted "mykey=False"
                 save(key[3:], False)
                 continue
+            # Apply _optmap (aliases)
+            key = self.apply_optmap(key)
             # Check for "noval" options, or if next arg is available
             if key in self._optlist_noval or (len(argv) == 0):
                 # No following arg to check
