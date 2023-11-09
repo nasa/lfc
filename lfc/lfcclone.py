@@ -36,16 +36,20 @@ def lfc_clone(*a, **kw):
         # Cloned bare repo -> working repo
         repo_name = repo_name[:-4]
     # Enter the repo
+    fpwd = os.getcwd()
     os.chdir(repo_name)
     # Instantiate
     repo = LFCRepo()
     # Exit if bare
     if repo.bare:
+        os.chdir(fpwd)
         return 0
     # Install hooks
     repo.lfc_install_hooks()
     # Pull all mode-2 files
     repo.lfc_pull(mode=2)
+    # Return to original location
+    os.chdir(fpwd)
     # Return code
     return 0
 

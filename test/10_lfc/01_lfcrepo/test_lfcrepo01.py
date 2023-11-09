@@ -12,12 +12,16 @@ import testutils
 # Local imports
 from lfc.cli import (
     lfc_add,
+    lfc_autopull,
+    lfc_autopush,
     lfc_checkout,
+    lfc_clone,
     lfc_init,
     lfc_pull,
     lfc_push,
     lfc_remote,
     lfc_replace_dvc,
+    lfc_set_mode,
     lfc_show
 )
 from lfc.lfcrepo import (
@@ -404,3 +408,39 @@ def test_repo06():
     repo._lfc_checkout(fname01)
     # Should have a different hash now (the original one)
     assert repo.genr8_hash(fname01) != hash1
+
+
+# Test lfc-set-mode
+@testutils.run_sandbox(__file__, fresh=False)
+def test_repo07():
+    # Enter repo
+    os.chdir(REPO_NAME)
+    kw = {"2": True}
+    # File names
+    f2 = OTHER_FILES[0]
+    # Set a file to mode=2
+    lfc_set_mode(f2, **kw)
+    # Get repo
+    repo = LFCRepo()
+    # Test mode
+    assert repo.read_lfc_mode(f2) == 2
+    # Commit mode-change
+    repo.commit(f"Set {f2} to mode=2", a=True)
+    # Auto-push
+    lfc_autopush()
+
+
+# Test lfc-clone
+@testutils.run_sandbox(__file__, fresh=False)
+def test_repo08():
+    # Repo names
+    repo1 = REPO_NAME
+    repo2 = f"{repo1}2"
+    # File names
+    f2 = OTHER_FILES[0]
+    # Clone the repo
+    lfc_clone(repo1, repo2)
+    # Enter new repo
+    os.chdir(repo2)
+    # File should have pulled
+    assert os.path.isfile(f2)

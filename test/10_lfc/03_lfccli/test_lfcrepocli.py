@@ -16,9 +16,8 @@ from lfc.cli import (
     lfc_remote,
     lfc_show
 )
-from lfc.lfcrepo import (
-    LFCRepo
-)
+from lfc import lfcclone
+from lfc.lfcrepo import LFCRepo
 
 
 # List of files to copy
@@ -151,3 +150,18 @@ def test_cli03():
     expected = open(LFC_FILE, 'rb').read()
     assert stdout == expected
 
+
+# Test special separate CLI function
+@testutils.run_sandbox(__file__, fresh=False)
+def test_cli04():
+    # Set args
+    sys.argv = ["lfc-clone", "repo", "copy"]
+    # Run it
+    lfcclone.main()
+    # Test if repo is present
+    assert os.path.isdir("copy")
+    # Test for hooks
+    fhook1 = os.path.join("copy", ".git", "hooks", "post-merge")
+    fhook2 = os.path.join("copy", ".git", "hooks", "pre-push")
+    assert os.path.isfile(fhook1)
+    assert os.path.isfile(fhook2)
