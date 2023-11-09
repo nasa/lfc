@@ -26,9 +26,14 @@ class LFCArgParser(ArgReader):
     # No attributes
     __slots__ = ()
 
+    # Aliases
+    _optmap = {
+        "d": "default",
+        "q": "quiet",
+    }
+
     # Options that never take a value
     _optlist_noval = (
-        "d",
         "default",
     )
 

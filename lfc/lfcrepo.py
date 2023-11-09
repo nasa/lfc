@@ -458,14 +458,16 @@ class LFCRepo(GitRepo):
         # Select mode to use
         mode = kw.get("mode")
         _valid8n_mode(mode)
+        # Verbosity setting
+        quiet = kw.get("quiet", kw.get("q", False))
         # Expand file list
         lfcfiles = self.genr8_lfc_glob(*fnames, mode=mode)
         # Loop through files
         for flfc in lfcfiles:
             # Push
-            self._lfc_push(flfc, remote)
+            self._lfc_push(flfc, remote, quiet)
 
-    def _lfc_push(self, fname: str, remote=None):
+    def _lfc_push(self, fname: str, remote=None, quiet=False):
         # Resolve remote name
         remote = self.resolve_lfc_remote_name(remote)
         # Get info
@@ -487,9 +489,9 @@ class LFCRepo(GitRepo):
         host, _ = shellutils.identify_host(fremote)
         # Check remote/local
         if host is None:
-            self._lfc_push_local(fhash, remote, flarge)
+            self._lfc_push_local(fhash, remote, flarge, quiet)
         else:
-            self._lfc_push_ssh(fhash, remote, flarge)
+            self._lfc_push_ssh(fhash, remote, flarge, quiet)
 
     def _lfc_push_ssh(self, fhash, remote, fname, quiet=False):
         # Get source file
@@ -573,16 +575,18 @@ class LFCRepo(GitRepo):
         remote = kw.get("remote", kw.get("r"))
         # Get mode
         mode = kw.get("mode")
+        # Verbosity setting
+        quiet = kw.get("quiet", kw.get("q", False))
         # Expand list of files
         lfcfiles = self.genr8_lfc_glob(*fnames, mode=mode)
         # Loop through matches
         for flfc in lfcfiles:
             # Pull
-            self._lfc_pull(flfc, remote)
+            self._lfc_pull(flfc, remote, quiet)
 
-    def _lfc_pull(self, fname: str, remote=None):
+    def _lfc_pull(self, fname: str, remote=None, quiet=False):
         # Fetch (download/copy) file to local cache
-        ierr = self._lfc_fetch(fname, remote)
+        ierr = self._lfc_fetch(fname, remote, quiet)
         # Check it out
         if ierr == IERR_OK:
             self._lfc_checkout(fname)
