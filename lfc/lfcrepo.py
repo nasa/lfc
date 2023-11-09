@@ -831,11 +831,11 @@ class LFCRepo(GitRepo):
         # Get hash
         return info.get("sha256", info.get("md5"))
 
-    def read_lfc_file(self, fname: str, ref=None):
+    def read_lfc_file(self, fname: str, ref=None, ext=None):
         r"""Read status information from large file stub
 
         :Call:
-            >>> info = repo.read_lfc_file(fname, ref=None)
+            >>> info = repo.read_lfc_file(fname, ref=None, ext=None)
         :Inputs:
             *repo*: :class:`GitRepo`
                 Interface to git repository
@@ -843,6 +843,8 @@ class LFCRepo(GitRepo):
                 Name of original file or large file stub
             *ref*: {``None``} | :class:`str`
                 Optional git reference (default ``HEAD`` on bare repo)
+            *ext*: {``None``} | ``".dvc"`` | ``".lfc"``
+                Large file metadata stub file extension
         :Outputs:
             *info*: :class:`dict`
                 Dictionary of information about large file
@@ -858,7 +860,7 @@ class LFCRepo(GitRepo):
             * 2011-12-20 ``@ddalle``: v1.0
         """
         # Get name of LFC metadata file
-        fname = self.genr8_lfc_filename(fname)
+        fname = self.genr8_lfc_filename(fname, ext=ext)
         # Check if bare repo
         if self.bare or ref is not None:
             # Make sure the file exists
@@ -878,7 +880,7 @@ class LFCRepo(GitRepo):
         # Get the outputs
         return info["outs"][0]
 
-    def read_lfc_mode(self, fname: str, ref=None):
+    def read_lfc_mode(self, fname: str, ref=None, ext=None) -> int:
         r"""Read LFC file mode for a tracked file
 
         :Call:
@@ -900,7 +902,7 @@ class LFCRepo(GitRepo):
             * 2023-11-08 ``@ddalle``: v1.0
         """
         # Read the file
-        lfcinfo = self.read_lfc_file(fname)
+        lfcinfo = self.read_lfc_file(fname, ref=ref, ext=ext)
         # Get mode
         return int(lfcinfo.get("mode", 1))
 
@@ -956,7 +958,7 @@ class LFCRepo(GitRepo):
         # Loop through matches
         for flfc in lfcmatches:
             # Check file mode
-            modej = self.read_lfc_mode(flfc)
+            modej = self.read_lfc_mode(flfc, ext=ext)
             # Check if it matches target
             if (mode is None) or (mode == modej):
                 lfcfiles.append(flfc)
@@ -1178,7 +1180,7 @@ class LFCRepo(GitRepo):
         return vdef
 
    # --- LFC file names ---
-    def genr8_lfc_filename(self, fname: str) -> str:
+    def genr8_lfc_filename(self, fname: str, ext=None) -> str:
         r"""Produce name of large file stub
 
         :Call:
@@ -1188,6 +1190,8 @@ class LFCRepo(GitRepo):
                 Interface to git repository
             *fname*: :class:`str`
                 Name of file, either original file or metadata stub
+            *ext*: {``None``} | ``".dvc"`` | ``".lfc"``
+                Large file metadata stub file extension
         :Outputs:
             *flfc*: :class:`str`
                 Name of large file metadata stub file
@@ -1195,7 +1199,8 @@ class LFCRepo(GitRepo):
             * 2022-12-21 ``@ddalle``: v1.0
         """
         # Get working extension
-        ext = self.get_lfc_ext()
+        if ext is None:
+            ext = self.get_lfc_ext()
         # Get DVC file if needed
         if not fname.endswith(ext):
             fname += ext
