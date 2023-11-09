@@ -236,7 +236,7 @@ class LFCRepo(GitRepo):
         # Location to "post-merge" hook
         fhook = os.path.join(hooksdir, "post-merge")
         # Check for existing file
-        if os.path.assert_isfile(fhook):
+        if os.path.isfile(fhook):
             print("hooks/post-merge hook already exists; aborting")
             return
         # Write file
@@ -268,7 +268,7 @@ class LFCRepo(GitRepo):
         # Location to "post-merge" hook
         fhook = os.path.join(hooksdir, "pre-push")
         # Check for existing file
-        if os.path.assert_isfile(fhook):
+        if os.path.isfile(fhook):
             print("hooks/pre-push hook already exists; aborting")
             return
         # Write file
