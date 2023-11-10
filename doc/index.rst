@@ -6,17 +6,8 @@
     :maxdepth: 2
     :caption: Contents:    
 
-    api/mypkg
+    api/lfc
     api/python
-
-
-.. only:: html
-
-    .. toctree::
-        :maxdepth: 2
-        :caption: Test results:
-
-        test/index
 
     Indices and tables
     ==================

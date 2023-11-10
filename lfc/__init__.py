@@ -1,6 +1,6 @@
 r"""
-``lfc``: Python git add-on to handle large files
-===========================================================
+Large File Control (``lfc``): A git extension to track large files
+===================================================================
 
 """
 

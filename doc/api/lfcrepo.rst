@@ -1,0 +1,3 @@
+
+.. automodule:: lfcrepo
+    :members:
