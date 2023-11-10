@@ -17,6 +17,7 @@ from lfc.cli import (
     lfc_checkout,
     lfc_clone,
     lfc_init,
+    lfc_install_hooks,
     lfc_pull,
     lfc_push,
     lfc_remote,
@@ -41,7 +42,9 @@ COPY_FILES = [
 ]
 OTHER_FILES = [
     "rando2.dat",
-    "rando3.dat"
+    "rando3.dat",
+    "rando4.dat",
+    "rando5.dat",
 ]
 
 
@@ -444,3 +447,59 @@ def test_repo08():
     os.chdir(repo2)
     # File should have pulled
     assert os.path.isfile(f2)
+
+
+# Test lfc-auto-pull
+@testutils.run_sandbox(__file__, fresh=False)
+def test_repo09():
+    # Repo names
+    repodir1 = REPO_NAME
+    repodir2 = f"{repodir1}2"
+    # Instantiate repos
+    repo2 = LFCRepo(repodir2)
+    # Enter second repop
+    os.chdir(repo2.gitdir)
+    # File names
+    f1 = COPY_FILES[1]
+    # Test no "rando.dat"
+    assert not os.path.isfile(f1)
+    # Set auto-pull mode to 1
+    repo2.lfc_config_set("core.autopull", 1)
+    # Now auto-pull
+    lfc_autopull()
+    # File should have arrived
+    assert os.path.isfile(f1)
+
+
+# Test lfc-install-hooks
+@testutils.run_sandbox(__file__, fresh=False)
+def test_repo10():
+    # Enter main repo
+    os.chdir(REPO_NAME)
+    # Install hooks
+    lfc_install_hooks()
+    # Instantiate repo
+    repo = LFCRepo()
+    # Check that the hooks were installed
+    assert os.path.isfile(
+        os.path.join(repo.gitdir, ".git", "hooks", "pre-push"))
+    # File name
+    f1 = OTHER_FILES[3]
+    # Create another file
+    with open(f1, 'wb') as fp:
+        fp.write(os.urandom(256))
+    # Add it
+    repo.lfc_add(f1, mode=2)
+    # Commit
+    repo.commit(f"Add {f1} to test pre-push hook")
+    # Try and push it
+    hubdir = os.path.realpath(os.path.join("..", f"{REPO_NAME}.git"))
+    os.system(f"git remote add hub {hubdir}")
+    os.system("git push hub main")
+    # Get hash
+    lfcinfo = repo.read_lfc_file(f1)
+    fhash = lfcinfo.get("sha256")
+    # File to hash in remote cache
+    fname = os.path.join(hubdir, "cache", fhash[:2], fhash[2:])
+    # It should have been pushed from the git-push
+    assert os.path.isfile(fname)

@@ -28,11 +28,11 @@ def lfc_clone(*a, **kw):
     ierr = shellutils.call(cmd, **kw)
     # Check for errors
     if ierr:
-        return LFCCloneError(f"git-clone failed with status {ierr}")
+        raise LFCCloneError(f"git-clone failed with status {ierr}")
     # Get name of repo
     repo_name = posixpath.basename(os.path.basename(a[-1]))
     # Check if we should remove .git: ``git clone repo.git`` -> repo
-    if repo_name.endswith(".git") and len(1) == 1:
+    if repo_name.endswith(".git") and len(a) == 1:
         # Cloned bare repo -> working repo
         repo_name = repo_name[:-4]
     # Enter the repo
