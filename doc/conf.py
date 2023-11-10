@@ -23,13 +23,13 @@ fdoc = os.path.abspath(".")
 repo = os.path.basename(fgit)
 
 # Basic title/subtitle
-desc = "``mypkg``: a Python package"
+desc = "``lfc``: a git extension for large files"
 
 # Paths to append
 for _f in [fgit]:
     if _f not in sys.path:
         sys.path.insert(0, _f)
-
+        
 
 # -- Project information -----------------------------------------------------
 

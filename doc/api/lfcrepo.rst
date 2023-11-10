@@ -1,3 +1,3 @@
 
-.. automodule:: lfcrepo
+.. automodule:: lfc.lfcrepo
     :members:

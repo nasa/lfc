@@ -1,6 +1,7 @@
 
-``mypkg``: A Python package
-=============================
+=================================================
+``lfc``: A git extension for large files
+=================================================
 
 .. toctree::
     :maxdepth: 2
@@ -8,6 +9,8 @@
 
     api/lfc
     api/python
+
+.. only:: html
 
     Indices and tables
     ==================

@@ -1,5 +1,5 @@
 r"""
-``lfc.lfrrepo``: Interface to git repos with large-file control
+``lfcrepo``: Interface to git repos with large-file control
 ==================================================================
 
 This module provides the :class:`LFCRepo`, which provides tools for
@@ -49,6 +49,14 @@ IERR_FILE_NOT_FOUND = 128
 
 # Create new class
 class LFCRepo(GitRepo):
+    r"""LFC interface to individual repositories
+
+    :Call:
+        >>> repo = LFCRepo(where=None)
+    :Inputs:
+        *where*: {``None``} | :class:`str`
+            Location of repo (``None`` -> ``os.getcwd()``)
+    """
    # --- Class attributes ---
     # Class attributes
     __slots__ = (
@@ -978,7 +986,7 @@ class LFCRepo(GitRepo):
             *mode*: {``None``} | ``1`` | ``2``
                 LFC file mode to search for
         :Outputs:
-            *lfcfiles: :class:`list`\ [:class:`str`]
+            *lfcfiles*: :class:`list`\ [:class:`str`]
                 List of matching ``.lfc`` files
         """
         # Default to (None,) if no inputs
