@@ -431,6 +431,9 @@ def test_repo07():
     repo.commit(f"Set {f2} to mode=2", a=True)
     # Auto-push
     lfc_autopush()
+    # Test mode validator
+    with pytest.raises(ValueError):
+        lfc_set_mode(f2, mode=3)
 
 
 # Test lfc-clone
@@ -503,3 +506,5 @@ def test_repo10():
     fname = os.path.join(hubdir, "cache", fhash[:2], fhash[2:])
     # It should have been pushed from the git-push
     assert os.path.isfile(fname)
+    # Run it again to make sure they're not overwritten
+    lfc_install_hooks()
