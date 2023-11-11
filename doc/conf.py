@@ -57,7 +57,11 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
+    'sphinx_copybutton',
 ]
+
+# Things to exclude from copy button
+copybutton_exclude = '.linenos, .gp, .go'
 
 # Main title
 title = "%s: %s" % (repo, desc)
