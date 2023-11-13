@@ -30,4 +30,5 @@ class LFCCloneError(SystemError, GitutilsError):
 
 
 class LFCValueError(ValueError, GitutilsError):
+    r"""Error class for wrong values in LFC"""
     pass

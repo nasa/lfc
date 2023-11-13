@@ -22,10 +22,26 @@ In general, LFC is for any project that uses git but also generates large files
 or even small files that happen to be binary. Here are some specific example
 use cases where LFC might be useful.
 
+    *   You're working in computational fluid dynamics (CFD) that requires very
+        large inputs and produces even larger outputs, and you'd like to make
+        the whole process reproducible without resorting to *ad hoc* scripts.
+
     *   You're a 21st-century developer using modern programming tools and git
         version control, but your colleagues keep sending you Word and Excel
         files that are the inputs to your process. You can use LFC to track
         those documents in a traceable and reliable way.
+
+    *   You have a process that generates binary output files and you'd like to
+        keep track of all the different versions of those files without having
+        to store all of them locally.
+
+    *   You have a repo that generates some binary file (which may or may not
+        be "large"), for example a picture, every day. You'd like users to be
+        able to clone the repo that makes and tracks those pictures but not
+        have to download the entire picture-of-the-day archive when they clone
+        the repo.
+
+    *   And many others.
 
 .. toctree::
     :maxdepth: 2

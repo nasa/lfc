@@ -1,3 +1,24 @@
+r"""
+``lfcclone``: Command-line interface for ``lfc-clone``
+========================================================
+
+The ``lfc clone`` command has a separate module (this one) in order to
+create a separate entry point (:func:`main`). This is used for the
+command ``git-lfc-clone``, which is a convenience executable. Users may
+use
+
+    .. code-block:: console
+
+        $ git lfc-clone $SOURCE_REPO [$OUT_REPO [OPTIONS]]
+
+or
+
+    .. code-block:: console
+
+        $ lfc clone $SOURCE_REPO [$OUT_REPO [OPTIONS]]
+
+interchangeably.
+"""
 
 # Standard library
 import posixpath
@@ -10,14 +31,23 @@ from ._vendor.argread import ArgReader
 from ._vendor.gitutils._vendor import shellutils
 
 
-def lfc_clone(*a, **kw):
+def lfc_clone(*a, **kw) -> int:
     r"""Clone a repo (using git) and pull all mode=-2 LFC files
 
     :Call:
-        >>> self.lfc_clone()
+        >>> ierr = lfc_clone(in_repo, bare=False)
+        >>> ierr = lfc_clone(in_repo, out_repo, bare=False)
     :Inputs:
-        *repo*: :class:`GitRepo`
-            Interface to git repository
+        *in_repo*: :class:`str`
+            URL to repo to clone
+        *out_repo*: {``None``} | :class:`str`
+            Explicit name of created repo; defaults to basename of
+            *in_repo*
+        *bare*: ``True`` | {``False``}
+            Whether new repo should be a bare repo
+    :Outputs:
+        *ierr*: :class:`int`
+            Return code
     """
     # Create nominal command
     cmd = ["git", "clone", *a]
@@ -55,7 +85,17 @@ def lfc_clone(*a, **kw):
 
 
 # Main function
-def main():
+def main() -> int:
+    r"""Clone a repo (using git) and pull all mode=-2 LFC files
+
+    :Call:
+        >>> ierr = main()
+    :Inputs:
+        (Determined from ``sys.argv``)
+    :Outputs:
+        *ierr*: :class:`int`
+            Return code
+    """
     # Create parser
     parser = ArgReader()
     # Parse args

@@ -1,3 +1,22 @@
+r"""
+``cli``: Command-line interface to ``lfc``
+=============================================
+
+This module provides several functions that are the main user interface
+to LFC. There is a function :func:`main` that reads ``sys.argv`` (the
+command-line strings of the current command). Then :func:`main`
+dispatches one of several other functions, for example
+
+    * :func:`lfc_clone`
+    * :func:`lfc_init`
+    * :func:`lfc_add`
+    * :func:`lfc_pull`
+    * :func:`lfc_push`
+
+These secondary commands read Python argumennts and keyword arguments
+rather than parsing ``sys.argv``, so they are usable to Python API
+programmers as well.
+"""
 
 # Standard library
 import os
