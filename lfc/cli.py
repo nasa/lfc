@@ -85,6 +85,20 @@ IERR_FILE_NOT_FOUND = 128
 
 
 def lfc_add(*a, **kw):
+    r"""Calculate metadata for large file(s) and cache them
+
+    :Call:
+        >>> lfc_add(*a, **kw)
+        >>> lfc_add(pat1, mode=1)
+        >>> lfc_add(pat1, pat2, ..., mode=1)
+    :Inputs:
+        *pat1*: :class:`str`
+            Name of large file or file name pattern
+        *pat2*: :class:`str`
+            Second file name or file name pattern
+        *mode*: {``1``} | ``2``
+            LFC mode for each added file
+    """
     # Read the repo
     repo = LFCRepo()
     # Check for -2 -> mode=2
@@ -94,6 +108,24 @@ def lfc_add(*a, **kw):
 
 
 def lfc_autopull(*a, **kw):
+    r"""Pull most recent version of mode-2 (configurable) LFC files
+
+    Normally this will pull all mode-2 files, but that can be configured
+    to all files or no files by setting ``core.autopull`` in
+    ``.lfc/config``. Users may also limit the pull to specific files,
+    but that is not the primary use case.
+
+    :Call:
+        >>> lfc_autopull()
+        >>> lfc_autopull(pat1, pat2, ..., quiet=True)
+    :Inputs:
+        *pat1*: :class:`str`
+            Name of large file or file name pattern
+        *pat2*: :class:`str`
+            Second file name or file name pattern
+        *quiet*: {``True``} | ``False``
+            Option to suppress STDOUT for files already up-to-date
+    """
     # Read the repo
     repo = LFCRepo()
     # Get mode
@@ -271,7 +303,20 @@ CMD_DICT = {
 
 
 # Main function
-def main():
+def main() -> int:
+    r"""Main command-line interface to ``lfc``
+
+    The function works by reading the second word of ``sys.argv`` and
+    dispatching a dedicated function for that purpose.
+
+    :Call:
+        >>> ierr = main()
+    :Inputs:
+        (read from ``sys.argv``)
+    :Outputs:
+        *ierr*: :class:`int`
+            Return code
+    """
     # Create parser
     parser = LFCArgParser()
     # Parse args
