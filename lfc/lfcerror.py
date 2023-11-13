@@ -1,5 +1,5 @@
 r"""
-``lfcerror``: Errors for :mod:`lfcutils` Git repo tools
+``lfcerror``: Errors for :mod:`lfc` modules
 ===========================================================
 
 This module provides a collection of error types relevant to the
