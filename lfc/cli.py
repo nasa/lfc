@@ -138,6 +138,24 @@ def lfc_autopull(*a, **kw):
 
 
 def lfc_autopush(*a, **kw):
+    r"""Push most recent version of mode-2 (configurable) LFC files
+
+    Normally this will push all mode-2 files, but that can be configured
+    to all files or no files by setting ``core.autopull`` in
+    ``.lfc/config``. Users may also limit the push to specific files,
+    but that is not the primary use case.
+
+    :Call:
+        >>> lfc_autopush()
+        >>> lfc_autopush(pat1, pat2, ..., quiet=True)
+    :Inputs:
+        *pat1*: :class:`str`
+            Name of large file or file name pattern
+        *pat2*: :class:`str`
+            Second file name or file name pattern
+        *quiet*: {``True``} | ``False``
+            Option to suppress STDOUT for files already up-to-date
+    """
     # Read the repo
     repo = LFCRepo()
     # Get mode
@@ -149,7 +167,43 @@ def lfc_autopush(*a, **kw):
     repo.lfc_push(*a, **kw)
 
 
+def lfc_checkout(*a, **kw):
+    r"""Check out one or more large files (from local cache)
+
+    If no patterns are specified, the target will be all large files
+    that are in the current folder or children thereof.
+
+    :Call:
+        >>> lfc_checkout()
+        >>> lfc_checkout(pat1, pat2, ..., force=False)
+    :Inputs:
+        *pat1*: :class:`str`
+            Name of large file or file name pattern
+        *pat2*: :class:`str`
+            Second file name or file name pattern
+        *f*, *force*: ``True`` | {``False``}
+            Delete uncached working file if present
+    """
+    # Read the repo
+    repo = LFCRepo()
+    # Checkout
+    repo.lfc_checkout(*a, **kw)
+
+
 def lfc_config(*a, **kw):
+    r"""Print or set an LFC configuration variable
+
+    :Call:
+        >>> lfc_config(cmdname, fullopt)
+        >>> lfc_config(cmdname, fullopt, val)
+    :Inputs:
+        *cmdname*: ``"get"`` | ``"set"``
+            LFC configuration operation to take
+        *fullopt*: :class:`str`
+            Full option name, ``"{sec}.{opt}"``
+        *val*: :class:`object`
+            Value to set if *cmdname* is ``"set"``
+    """
     # Read the repo
     repo = LFCRepo()
     # Check command
@@ -171,6 +225,21 @@ def lfc_config(*a, **kw):
 
 
 def lfc_init(*a, **kw):
+    r"""Initialize a repo as an LFC repo
+
+    This will create (if necessary) the following folders:
+
+    *   ``.lfc/``
+    *   ``.lfc/cache/``
+
+    and the following files:
+
+    *   ``.lfc/config``
+    *   ``.lfc/.gitignore``
+
+    :Call:
+        >>> lfc_init()
+    """
     # Read the repo
     repo = LFCRepo()
     # Push it
@@ -178,6 +247,20 @@ def lfc_init(*a, **kw):
 
 
 def lfc_install_hooks(*a, **kw):
+    r"""Install git-hooks in current LFC repo
+
+    This creates the following files relative to the top-level folder
+    of the working repository:
+
+    *   ``.git/hooks/post-merge``
+    *   ``.git/hooks/pre-push``
+
+    If the files exist, this will not overwrite them. After writing the
+    file, it also makes the executable.
+
+    :Call:
+        >>> lfc_install_hooks()
+    """
     # Read the repo
     repo = LFCRepo()
     # Install hooks
@@ -185,6 +268,20 @@ def lfc_install_hooks(*a, **kw):
 
 
 def lfc_ls_files(*a, **kw):
+    r"""List files tracked by LFC
+
+    If called from a working repository, only files in the current
+    folder or a subfolder thereof are listed.
+
+    :Call:
+        >>> lfc_ls_files()
+        >>> lfc_ls_files(*pats)
+    :Inputs:
+        *pats*: :class:`tuple`\ [:class:`str`]
+            (Optional) list of file name patterns to use
+    :STDOUT:
+        Each matching ``*.lfc`` file is printed to a line in STDOUT
+    """
     # Read the repo
     repo = LFCRepo()
     # Check for -2 -> mode=2
@@ -196,6 +293,26 @@ def lfc_ls_files(*a, **kw):
 
 
 def lfc_pull(*a, **kw):
+    r"""Pull (fetch and checkout) one or more large files
+
+    If no patterns are specified, the target will be all large files
+    that are in the current folder or children thereof.
+
+    :Call:
+        >>> lfc_pull()
+        >>> lfc_pull(pat1, pat2, ..., quiet=True)
+    :Inputs:
+        *pat1*: :class:`str`
+            Name of large file or file name pattern
+        *pat2*: :class:`str`
+            Second file name or file name pattern
+        *mode*: {``None``} | ``1`` | ``2``
+            Optionally only pull files of a specified mode
+        *quiet*: {``True``} | ``False``
+            Option to suppress STDOUT for files already up-to-date
+        *f*, *force*: ``True`` | {``False``}
+            Delete uncached working file if present
+    """
     # Read the repo
     repo = LFCRepo()
     # Check for -2 -> mode=2
@@ -204,14 +321,25 @@ def lfc_pull(*a, **kw):
     repo.lfc_pull(*a, **kw)
 
 
-def lfc_checkout(*a, **kw):
-    # Read the repo
-    repo = LFCRepo()
-    # Checkout
-    repo.lfc_checkout(*a, **kw)
-
-
 def lfc_push(*a, **kw):
+    r"""Push one or more large files
+
+    If no patterns are specified, the target will be all large files
+    that are in the current folder or children thereof.
+
+    :Call:
+        >>> lfc_push()
+        >>> lfc_push(pat1, pat2, ..., quiet=True)
+    :Inputs:
+        *pat1*: :class:`str`
+            Name of large file or file name pattern
+        *pat2*: :class:`str`
+            Second file name or file name pattern
+        *mode*: {``None``} | ``1`` | ``2``
+            Optionally only push files of a specified mode
+        *quiet*: {``True``} | ``False``
+            Option to suppress STDOUT for files already up-to-date
+    """
     # Read the repo
     repo = LFCRepo()
     # Check for -2 -> mode=2
@@ -221,6 +349,22 @@ def lfc_push(*a, **kw):
 
 
 def lfc_remote(*a, **kw):
+    r"""Show or set URL to an LFC remote cache
+
+    :Call:
+        >>> lfc_remote(cmdname)
+        >>> lfc_remote("list")
+        >>> lfc_remote("add", remote, url, **kw)
+    :Inputs:
+        *cmdname*: ``"list"`` | ``"add"`` | ``"set-url"``
+            Name of LFC action to take
+        *remote*: :class:`str`
+            Name of LFC remote
+        *url*: :class:`str`
+            Path to remote cache (local or SSH)
+        *d*, *default*: ``True`` | {``False``}
+            Set *remote* as the default LFC remote
+    """
     # Read the repo
     repo = LFCRepo()
     # Check command
@@ -242,6 +386,26 @@ def lfc_remote(*a, **kw):
 
 
 def lfc_replace_dvc(*a, **kw):
+    r"""Replace any DVC settings and file names
+
+    This will rename some files and folders:
+
+        * ``.dvc/`` -> ``.lfc/``
+        * ``*.dvc`` -> ``*.lfc``
+
+    It will also delete some JSON files used by DVC if present.
+
+    The function is safe to call multiple times if DVC has been
+    partially replaced. If there are no DVC artifacts, this function
+    will take no action.
+
+    It does **not** recompute hashes. If any existing MD-5 hashes are
+    present, LFC will continue to use them, but updating the file
+    (using ``lfc add``) will still use a SHA-256 hash.
+
+    :Call:
+        >>> lfc_replace_dvc()
+    """
     # Read the repo
     repo = LFCRepo()
     # Replace
@@ -249,6 +413,18 @@ def lfc_replace_dvc(*a, **kw):
 
 
 def lfc_set_mode(*a, **kw):
+    r"""Set the mode of one or more LFC files
+
+    :Call:
+        >>> lfc_set_mode(*pats, mode=None)
+    :Inputs:
+        *pat1*: :class:`str`
+            Name of large file or file name pattern
+        *pat2*: :class:`str`
+            Second file name or file name pattern
+        *mode*: ``1`` | ``2``
+            Required LFC mode to set for each file matching any *pat*
+    """
     # Read the repo
     repo = LFCRepo()
     # Check for -2 -> mode=2
@@ -258,6 +434,19 @@ def lfc_set_mode(*a, **kw):
 
 
 def lfc_show(*a, **kw):
+    r"""Print contents of a large file to STDOUT, even in bare repo
+
+    This function does not decode the bytes so that binary files can be
+    piped from bare repos through STDOUT.
+
+    :Call:
+        >>> lfc_show(fname, ref="HEAD")
+    :Inputs:
+        *fname*: :class:`str`
+            Name of original file or large file stub
+        *ref*: {``None``} | :class:`str`
+            Optional git reference (default ``HEAD`` on bare repo)
+    """
     # Read the repo
     repo = LFCRepo()
     # Check if *a* has exactly one file

@@ -575,6 +575,8 @@ class LFCRepo(GitRepo):
                 Names or wildcard patterns of files
             *mode*: {``None``} | ``1`` | ``2``
                 LFC file mode:
+            *f*, *force*: ``True`` | {``False``}
+                Delete uncached working file if present
         :Versions:
             * 2022-12-28 ``@ddalle``: v1.0
             * 2023-11-08 ``@ddalle``: v1.1; add *mode*
@@ -585,19 +587,21 @@ class LFCRepo(GitRepo):
         mode = kw.get("mode")
         # Verbosity setting
         quiet = kw.get("quiet", kw.get("q", False))
+        # Overwrite setting
+        force = kw.get("force", kw.get("f", False))
         # Expand list of files
         lfcfiles = self.genr8_lfc_glob(*fnames, mode=mode)
         # Loop through matches
         for flfc in lfcfiles:
             # Pull
-            self._lfc_pull(flfc, remote, quiet)
+            self._lfc_pull(flfc, remote, quiet, force)
 
-    def _lfc_pull(self, fname: str, remote=None, quiet=False):
+    def _lfc_pull(self, fname: str, remote=None, quiet=False, force=False):
         # Fetch (download/copy) file to local cache
         ierr = self._lfc_fetch(fname, remote, quiet)
         # Check it out
         if ierr == IERR_OK:
-            self._lfc_checkout(fname)
+            self._lfc_checkout(fname, force=force)
 
     def _lfc_fetch(self, fname: str, remote=None, quiet=False):
         # Resolve remote name
@@ -700,17 +704,21 @@ class LFCRepo(GitRepo):
                 Interface to git repository
             *fnames*: :class:`tuple`\ [:class:`str`]
                 Names or wildcard patterns of files
+            *f*, *force*: ``True`` | {``False``}
+                Delete uncached working file if present
         :Versions:
             * 2023-10-24 ``@ddalle``: v1.0
         """
         # Expand list of files
         lfcfiles = self.genr8_lfc_glob(fname, *fnames)
+        # Overwrite option
+        force = kw.get("f", kw.get("force", False))
         # Loop through files
         for flfc in lfcfiles:
             # Checkout single file
-            self._lfc_checkout(flfc)
+            self._lfc_checkout(flfc, force=force)
 
-    def _lfc_checkout(self, fname: str):
+    def _lfc_checkout(self, fname: str, force=False):
         # Only appropriate in working repos
         self.assert_working()
         # Strip .lfc if necessary
@@ -724,7 +732,7 @@ class LFCRepo(GitRepo):
         # Get cache file name
         fcache = os.path.join(cachedir, fhash[:2], fhash[2:])
         # Check if file is present in the cache
-        if not os.path.isfile(fcache):
+        if (not force) and (not os.path.isfile(fcache)):
             # Truncate long file name
             f1 = self._trunc8_fname(fname, 32)
             # Raise exception
