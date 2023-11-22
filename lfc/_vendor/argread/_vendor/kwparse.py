@@ -8,17 +8,136 @@ convention in their signature, such as
 
 .. code-block:: python
 
-    def f(a, b, **kw)
+    def f(a, b, **kw):
+        ...
 
 Users of this module create subclasses of :class:`KwargParser` that
 process the expected keyword arguments to :func:`f`. The capabilities
 of :class:`KwargParser` include
 
-* only allowing specific keys (``_optlist``)
-* mapping keys to alternate names, e.g. using *v* as a shortcut for
-  *verbose* (``_optmap``)
-* specifying the type(s) allowed for specific options (``_opttypes``)
+* only allowing specific keys (:data:`KwargParser._optlist`)
+* mapping kwargs to alternate names, e.g. using *v* as a shortcut for
+  *verbose* (:data:`KwargParser._optmap`)
+* specifying the type(s) allowed for specific options
+  (:data:`KwargParser._opttypes`)
+* creating aliases for values (:data:`KwargParser._optvalmap`)
+* calling converter functions (e.g. ``int()`` to convert a :class:`str`
+  to an :class:`int`) (:data:`KwargParser._optconverters`)
 
+Suppose you have a function
+
+.. code-block:: python
+
+    def f(a, b, **kw):
+        ...
+
+Where *a* should be a :class:`str`, *b* should be an :class:`int`, and
+the only kwargs are *verbose* and *help*, which should both be
+:class:`bool`. However, users can use *h* as an alias for *help* and *v*
+for *verbose*. Then we could write a subclass of :class:`KwargParser` to
+parse and validate args to this function.
+
+.. code-block:: python
+
+    class FKwargs(KwargParser):
+        _optlist = ("help", "verbose")
+        _optmap = {
+            "h": "help",
+            "v": "verbose",
+        }
+        _opttypes = {
+            "a": str,
+            "b": int,
+            "help": bool,
+            "verbose": bool,
+        }
+        _arglist = ("a", "b")
+        _nargmin = 2
+        _nargmax = 2
+
+Here is how this parser handles an example with expected inputs.
+
+.. code-block:: pycon
+
+    >>> opts = FKwargs("me", 33, v=True)
+    >>> print(opts)
+    {'verbose': True}
+    >>> print(opts.get_args())
+    ('me', 33)
+
+In many cases it is preferable to use
+
+* :data:`INT_TYPES` instead of :class:`int`,
+* :data:`FLOAT_TYPES` instead of :class:`float`,
+* :data:`BOOL_TYPES` instead of :class:`bool`, and
+* :data:`STR_TYPES` instead of :class:`str`
+
+within :data:`KwargParser._opttypes`, e.g.
+
+.. code-block:: python
+
+    class FKwargs(KwargParser):
+        _optlist = ("help", "verbose")
+        _optmap = {
+            "h": "help",
+            "v": "verbose",
+        }
+        _opttypes = {
+            "a": str,
+            "b": INT_TYPES,
+            "help": BOOL_TYPES,
+            "verbose": BOOL_TYPES,
+        }
+        _arglist = ("a", "b")
+        _nargmin = 2
+        _nargmax = 2
+
+so that values taken from :mod:`numpy` arrays are also recognized as
+valid "integers," "floats," or "booleans."
+
+Here are some examples of how FKwargs might handle bad inputs.
+
+.. code-block:: pycon
+
+    >>> FKwargs("my", help=True)
+    File "kwparse.py", line 172, in wrapper
+        raise err.__class__(msg) from None
+    kwparse.KWTypeError: FKwargs() takes 2 arguments, but 1 were given
+    >>> FKwargs(2, 3)
+    File "kwparse.py", line 172, in wrapper
+        raise err.__class__(msg) from None
+    kwparse.KWTypeError: FKwargs() arg 0 (name='a'): got type 'int';
+    expected 'str'
+    >>> FKwargs("my", 10, b=True)
+    File "kwparse.py", line 172, in wrapper
+        raise err.__class__(msg) from None
+    kwparse.KWNameError: FKwargs() unknown kwarg 'b'
+    >>> FKwargs("my", 10, h=1)
+    File "kwparse.py", line 172, in wrapper
+        raise err.__class__(msg) from None
+    kwparse.KWTypeError: FKwargs() kwarg 'help': got type 'int';
+    expected 'bool'
+
+In order to use an instance of this :class:`FKwargs` there are several
+approaches. The first is to call the parser class directly:
+
+.. code-block:: python
+
+    def f(a, b, **kw):
+        opts = FKwargs(a, b, **kw)
+        ...
+
+Another method is to use FKwargs as a decorator
+
+.. code-block:: python
+
+    @FKwargs.parse
+    def f(a, b, **kw):
+        ...
+
+The decorator option ensures that *a*, *b*, and *kw* have all been
+validated. Users can then use ``kw.get("help")`` without needing to
+check for *h*.
 """
 
 # Standard library
@@ -68,6 +187,12 @@ class KWValueError(ValueError, KWParseError):
 
 # Collections of common types
 if hasattr(np, "float128"):
+    #: Collection of floating-point types:
+    #: :class:`float`
+    #: | :class:`numpy.float16`
+    #: | :class:`numpy.float32`
+    #: | :class:`numpy.float64`
+    #: | :class:`numpy.float128`
     FLOAT_TYPES = (
         float,
         np.float16,
@@ -80,6 +205,16 @@ else:  # pragma no cover
         np.float16,
         np.float32,
         np.float64)
+#: Collection of integer (including unsigned) types:
+#: :class:`int`
+#: | :class:`numpy.int8`
+#: | :class:`numpy.int16`
+#: | :class:`numpy.int32`
+#: | :class:`numpy.int64`
+#: | :class:`numpy.uint8`
+#: | :class:`numpy.uint16`
+#: | :class:`numpy.uint32`
+#: | :class:`numpy.uint64`
 INT_TYPES = (
     int,
     np.int8,
@@ -90,10 +225,17 @@ INT_TYPES = (
     np.uint16,
     np.uint32,
     np.uint64)
+#: Collection of boolean-like types:
+#: :class:`bool` | :class:`numpy.bool_`
 BOOL_TYPES = (
     bool,
     np.bool_)
-# Acceptable types for _optlist
+#: Collection of string-like types:
+#: :class:`str` | :class:`numpy.str_`
+STR_TYPES = (
+    str,
+    np.str_)
+#: Acceptable types for :data:`KwargParser._optlist`
 OPTLIST_TYPES = (
     set,
     tuple,
@@ -101,7 +243,7 @@ OPTLIST_TYPES = (
     list)
 
 
-# Option name/value pair
+#: Option name/value pair
 OptPair = namedtuple("OptPair", ["opt", "val"])
 
 
@@ -125,6 +267,21 @@ def _wrap_init(func):
 
 # Main class
 class KwargParser(dict):
+    r"""A class to parse args and keyword args, check types, etc.
+
+    :Call:
+        >>> opts = KwargParser(*a, **kw)
+    :Inputs:
+        *a*: :class:`tuple`
+            Arbitrary tuple of positional parameters to a function
+        *kw*: :class:`dict`
+            Arbitrary dict of keyword arguments to a function
+    :Outputs:
+        *opts*: :class:`KwargParser`
+            Dictionary of validated kwargs and positional parameters
+    :Attributes:
+        * :attr:`argvals`
+    """
   # *** CLASS ATTRIBUTES ***
    # --- General ---
     # Attributes
@@ -132,44 +289,57 @@ class KwargParser(dict):
         "argvals",
     )
 
-    # Subclass name
+    #: Subclass name used in error messages
+    #: :class:`str`
     _name = ""
 
    # --- Options ---
-    # Options
+    #: Allowed keyword (option) names:
+    #: (:class:`tuple` | :class:`set`)[:class:`str`]
     _optlist = ()
 
-    # Aliases
+    #: Aliases for kwarg names; key gets replaced with value:
+    #: :class:`dict`\ [:class:`str`]
     _optmap = {}
 
-    # Types (before conversoin)
+    #: Allowed types for option values, before using converter:
+    #: :class:`dict`\ [:class:`type` | :class:`tuple`\ [:class:`type`]]
     _rawopttypes = {}
 
-    # Aliases for option values
+    #: Aliases for option values:
+    #: :class:`dict`\ [:class:`object`]
     _optvalmap = {}
 
-    # Converter functions
+    #: Functions to convert raw value of specified options:
+    #: :class:`dict`\ [:class:`callable`]
     _optconverters = {}
 
-    # Types
+    #: Allowed types for option values, after using converter:
+    #: :class:`dict`\ [:class:`type` | :class:`tuple`\ [:class:`type`]]
     _opttypes = {}
 
-    # Specified allowed values
+    #: Specified allowed values for specified options:
+    #: :class:`dict`\ [:class:`tuple` | :class:`set`]
     _optvals = {}
 
-    # Required kwargs
+    #: Required kwargs:
+    #: :class:`tuple`\ [:class:`str`]
     _optlistreq = ()
 
-    # Positional parameter names
+    #: Names for positional parameters (in order):
+    #: :class:`tuple`\ [:class:`set`]
     _arglist = ()
 
-    # Minimum required number of positional parameters
+    #: Minimum required number of positional parameters:
+    #: :class:`int` >= 0
     _nargmin = 0
 
-    # Maximum number of positional parameters
+    #: Maximum number of positional parameters:
+    #: ``None`` | :class:`int` > 0
     _nargmax = None
 
-    # Defaults
+    #: Default values for specified options:
+    #: :class:`dict`\ [:class:`object`]
     _rc = {}
 
   # *** METHODS ***
@@ -178,11 +348,11 @@ class KwargParser(dict):
     @_wrap_init
     def __init__(self, *args, **kw):
         r"""Initialization method"""
-        # Initialize arg values
+        #: :class:`list` -- List of values of positional parameters
+        #: that cannot be aliased to options (not in :data:`_optlist`)
         self.argvals = []
         # Class and name
         cls = self.__class__
-        clsname = cls.__name__
         # Allowed args
         nargmin = cls._nargmin
         nargmax = cls._nargmax
@@ -191,10 +361,12 @@ class KwargParser(dict):
         # Format first part of error message for positional params
         if nargmax is None:
             # No upper limit
-            msg = f"{clsname}() takes at least {nargmin} arguments, "
+            msg = f"takes at least {nargmin} arguments,"
         else:
             # Specified upper limit
-            msg = f"{clsname}() takes {nargmin} to {nargmax} arguments, "
+            ntxt = f"{nargmin} to {nargmax}"
+            ntxt = f"{nargmin}" if nargmin == nargmax else ntxt
+            msg = f"takes {ntxt} arguments,"
         # Check arg counter
         if narg < nargmin:
             # Not enough args
@@ -211,11 +383,45 @@ class KwargParser(dict):
 
     # Post-initialization hook
     def init_post(self):
+        r"""Custom post-initialization hook
+
+        This function is called in the standard :func:`__init__`. The
+        default :func:`init_post` does nothing. Users may define custom
+        actions in :func:`init_post` in subclasses to make certain
+        changes at the end of parsing
+
+        :Call:
+            >>> opts.init_post()
+        :Inputs:
+            *opts*: :class:`KwargParser`
+                Keyword argument parser instance
+        """
         pass
 
   # *** DECORATORS ***
     @classmethod
     def parse(cls, func):
+        r"""Decorator for a function to parse and validate its inputs
+
+        :Call:
+            >>> wrapper = cls.parse(func)
+        :Example:
+            .. code-block:: python
+
+                @cls.parse
+                def func(*a, **kw):
+                    ...
+
+        :Inputs:
+            *func*: :class:`callable`
+                A function, class, or callable instance
+        :Outputs:
+            *cls*: :class:`type`
+                A subclass of :class:`KwargParser`
+            *wrap*: :class:`callable`
+                A wrapped version of *func* that parses and validates
+                args and kwargs according to *cls* before calling *func*
+        """
         # Create wrapper
         @wraps(func)
         def wrapper(*a, **kw):
@@ -246,6 +452,17 @@ class KwargParser(dict):
    # --- Get ---
     # Get full dictionary
     def get_kwargs(self) -> dict:
+        r"""Get dictionary of kwargs, applying defaults
+
+        :Call:
+            >>> kwargs = opts.get_kwargs()
+        :Inputs:
+            *opts*: :class:`KwargParser`
+                Keyword argument parser instance
+        :Outputs:
+            *kwargs*: :class:`dict`
+                Keyword arguments and values currently parsed
+        """
         # Get class
         cls = self.__class__
         # Create a copy
@@ -268,11 +485,35 @@ class KwargParser(dict):
 
     # Get list of args, terminating at first None
     def get_args(self) -> tuple:
+        r"""Return a copy of the current positional parameter values
+
+        :Call:
+            >>> args = opts.get_args()
+        :Inputs:
+            *opts*: :class:`KwargParser`
+                Keyword argument parser instance
+        :Outputs:
+            *args*: :class:`tuple`\ [:class:`object`]
+                Current values of positional parameters
+        """
         # Return current arg values
         return tuple(self.argvals)
 
     # Get option
     def get_opt(self, opt: str, vdef=None):
+        r"""Get value of one option
+
+        :Call:
+            >>> val = opts.get_opt(opt, vdef=None)
+        :Inputs:
+            *opts*: :class:`KwargParser`
+                Keyword argument parser instance
+            *opt*: :class:`str`
+                Name of option
+            *vdef*: {``None``} | :class:`object`
+                Default value if *opt* not found in *opts* or
+                :data:`_rc`
+        """
         # Apply option map
         opt = self.apply_optmap(opt)
         # Check if present
@@ -329,6 +570,16 @@ class KwargParser(dict):
 
     # Set list of positional parameter values
     def set_args(self, args):
+        r"""Set the values of positional arguments
+
+        :Call:
+            >>> opts.set_args()
+        :Inputs:
+            *opts*: :class:`KwargParser`
+                Keyword argument parser instance
+            *args*: :class:`list` | :class:`tuple`
+                Ordered list of positional argument values
+        """
         # Loop through args
         for j, rawval in enumerate(args):
             # Save it
@@ -336,6 +587,18 @@ class KwargParser(dict):
 
     # Set positional parameter value
     def set_arg(self, j: int, rawval):
+        r"""Set the value of the *j*-th positional argument
+
+        :Call:
+            >>> opts.set_arg(j, rawval)
+        :Inputs:
+            *opts*: :class:`KwargParser`
+                Keyword argument parser instance
+            *j*: :class:`int` >= 0
+                Argument index
+            *rawval*: :class:`object`
+                Value for arg *j*, before :data:`_optconverters`
+        """
         # Get class
         cls = self.__class__
         # Get parameter name, if applicable
@@ -374,9 +637,9 @@ class KwargParser(dict):
             *opts*: :class:`KwargParser`
                 Keyword argument parser instance
             *rawopt*: :class:`str`
-                Name or alias of an option
+                Name or alias of option, before :data:`_optlist`
             *rawval*: :class:`object`
-                Original (before *optconverter* is applied) value
+                Value of option, before :data:`_optconverters`
         :Outputs:
             *optpair*: :class:`OptPair`
                 :class:`tuple` of de-aliased option name and converted
@@ -408,7 +671,7 @@ class KwargParser(dict):
             *opt*: :class:`str`
                 De-aliased option name (after *optmap* applied)
             *rawval*: :class:`object`
-                Original (before *optconverter* is applied) value
+                Value of option, before :data:`_optconverters`
         :Outputs:
             *val*: :class:`object`
                 Converted value, either *rawval* or
@@ -441,7 +704,7 @@ class KwargParser(dict):
             *argname*: ``None`` | :class:`str`
                 Argument name, if applicable
             *rawval*: :class:`object`
-                Original (before *optconverter* is applied) value
+                Value of option, before :data:`_optconverters`
         :Outputs:
             *val*: :class:`object`
                 Converted value, either *rawval* or
@@ -469,7 +732,7 @@ class KwargParser(dict):
             *opts*: :class:`KwargParser`
                 Keyword argument parser instance
             *rawopt*: :class:`str`
-                Raw (possibly aliased) option name
+                Option name or alias, before :data:`_optmap`
         :Outputs:
             *opt*: {*rawopt*} | :class:`str`
                 De-aliased option name
@@ -663,7 +926,7 @@ class KwargParser(dict):
             *argname*: ``None`` | :class:`str`
                 Positional parameter (arg) name, if appropriate
             *rawval*: :class:`object`
-                Raw user value for *opt* before using *optconverter*
+                Value of option, before :data:`_optconverters`
         :Raises:
             :class:`KWTypeError` if *rawval* has wrong type
         """
@@ -693,7 +956,7 @@ class KwargParser(dict):
             *argname*: ``None`` | :class:`str`
                 Positional parameter (arg) name, if appropriate
             *rawval*: :class:`object`
-                Raw user value for *opt* before using *optconverter*
+                Value of option, before :data:`_optconverters`
         :Outputs:
             *val*: {*rawval*} | :class:`object`
                 Result of calling *optconverter* for *opt* on *rawval*
@@ -1225,6 +1488,7 @@ def randomstr(n=15) -> str:
 # Create error message for type errors
 def _genr8_type_error(obj, cls_or_tuple, desc=None):
     r"""Create error message for type-check commands
+
     :Call:
         >>> msg = _genr8_type_error(obj, cls, desc=None)
         >>> msg = _genr8_type_error(obj, cls_tuple, desc=None)

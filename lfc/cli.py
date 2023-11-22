@@ -37,6 +37,9 @@ HELP_LFC = r"""GitUtils and Large File Control control (lfc)
     .. code-block:: console
 
         $ lfc CMD [OPTIONS]
+
+:Inputs:
+    * *CMD*
 """
 
 

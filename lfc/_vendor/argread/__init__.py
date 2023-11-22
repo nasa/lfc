@@ -6,7 +6,102 @@ r"""
 
 This class provides the :class:`ArgReader` class, instances of
 which can be used to customize available command-line options for a
-given inteface.
+given interface.
+
+The :class:`ArgReader` class has the function :func:`ArgReader.parse`,
+which interprets ``sys.argv`` and splits it into a list of args and
+kwargs. The base :class:`ArgReader` class will parse command-line
+arguments in useful ways, but one of the main intents is to subclass
+:class:`ArgReader` and customize how various CLI arguments are parsed.
+
+Here are some examples of the base interpreter, which can also be used
+with the convenience function :func:`readkeys`.
+
+.. code-block:: pycon
+
+    >>> readkeys(["prog", "arg1", "arg2", "-v", "--name", "argread"])
+    ("arg1", "arg2"), {"v": True, "name": "argread"}
+    >>> readkeys(["prog", "-v", "1", "2", "-name", "argread", "d=3"])
+    ("2",), {"v": "1", "name": "argread", "d": "3"}
+
+Notice that the ``1`` goes as the value of the option ``v``. The ``2``
+is not preceded by a :class:`str` starting with a dash, so it gets
+interpreted as an arg.
+
+There is an alternate function :func:`readflags` that interprets
+multi-letter args starting with a single dash differently:
+
+.. code-block:: pycon
+
+    >>> readflags(["prog", "-lh", "fname"])
+    ("fname",), {"l": True, "h": True}
+
+There is a third function :func:`readflagstar` that interprets arguments
+like ``tar``
+
+.. code-block:: pycon
+
+    >>> readflagstar(["prog", "-cvf", "fname"])
+    (), {"c": True, "v": True, "f": "fname"}
+
+These convenience functions make it easy to parse many command-line
+inputs with minimal effort, but it is also possible to declare richer
+and more specific interfaces by subclassing :class:`ArgReader`.
+
+For example
+
+.. code-block:: python
+
+    class MyParser(ArgReader):
+        _optlist_noval = (
+            "default",
+            "verbose",
+        )
+        _optmap = {
+            "d": "default",
+            "v": verbose",
+        }
+
+has two properties. First ``-d`` and ``-v`` are abbreviations for
+``--default`` and ``--verbose``, respectively, because of the entries in
+:data:`MyParser._optmap`. Second, neither option can take a "value", so
+
+.. code-block:: console
+
+    $ prog -d hub url
+
+would be parsed as
+
+.. code-block::
+
+    ("hub", "url"), {"default": True}
+
+In other words, the word ``hub`` didn't get interpreted as the value for
+the option ``d`` as it would with the default :class:`ArgReader`.
+
+Another common use case is to convert CLI strings to another type. For
+example suppose you have an option ``i`` that takes in the index of
+something you want to work with, like
+
+.. code-block:: console
+
+    $ prog -i 3
+
+The default :func:`readkeys` in this case would return
+
+.. code-block:: python
+
+    (), {"i": "3"}
+
+you can convert this :class:`str` ``"3"`` to an :class:`int` with the
+following subclass
+
+.. code-block::
+
+    class MyConverter(ArgReader):
+        _optconverters = {
+            "i": int,
+        }
 """
 
 # Standard library
@@ -27,6 +122,8 @@ REGEX_EQUALKEY = re.compile(r"(\w+)=([^=].*)")
 
 # Custom error class
 class ArgReadError(Exception):
+    r"""Base error class for this package
+    """
     pass
 
 
@@ -39,6 +136,17 @@ class ArgReader(KwargParser):
     :Outputs:
         *parser*: :class:`ArgReader`
             Instance of command-line argument parser
+    :Attributes:
+        * :attr:`argv`
+        * :attr:`prog`
+        * :attr:`kwargs_sequence`
+        * :attr:`kwargs_replaced`
+        * :attr:`kwargs_single_dash`
+        * :attr:`kwargs_double_dash`
+        * :attr:`kwargs_equal_sign`
+        * :attr:`param_sequence`
+    :See also:
+        * :class:`_vendor.kwparse.KwargParser`
     """
    # --- Class attributes ---
     # List of instance attributes
@@ -53,18 +161,28 @@ class ArgReader(KwargParser):
         "param_sequence",
     )
 
-    # Options that cannot take values
+    #: List of options that cannot take a value:
+    #: (:class:`tuple` | :class:`set`)\ [:class:`str`]
     _optlist_noval = ()
 
-    # Enforce _optlist
+    #: Option to enforce ``_optlist``
     _restrict = False
 
-    # Options
+    #: Option to interpret multi-char words with a single dash
+    #: as single-letter boolean options, e.g.
+    #: ``-lh`` becomes ``{"l": True, "h": True}``
     single_dash_split = False
+
+    #: Option to interpret multi-char words with a single dash
+    #: the way POSIX command ``tar`` does, e.g.
+    #: ``-cvf val`` becomes ``{"c": True, "v": True, "f": "val"}``
     single_dash_lastkey = False
+
+    #: Option to allow equal-sign options, e.g.
+    #: ``key=val`` becomes ``{"key": "val"}``
     equal_sign_key = True
 
-    # Base exception class
+    #: Base exception class: :class:`Exception`
     exc_cls = ArgReadError
 
    # --- __dunder__ ---
@@ -75,18 +193,35 @@ class ArgReader(KwargParser):
             * 2021-11-21 ``@ddalle``: v1.0
         """
         # Initialize attributes
+        #: :class:`list`\ [:class:`str`] --
+        #: List of raw CLI commands parsed
         self.argv = []
+        #: :class:`str` -- Name of program read from ``argv[0]``
         self.prog = None
+        #: :class:`list` -- Current values of non-keyword arguments
         self.argvals = []
+        #: :class:`list`\ [:class:`str`] --
+        #: List of options in original order
         self.kwargs_sequence = []
+        #: :class:`list`\ [:class:`str`] --
+        #: List of options that have duplicates
         self.kwargs_replaced = []
+        #: :class:`list`\ [:class:`str`] --
+        #: List of options that were entered with a single dash
         self.kwargs_single_dash = {}
+        #: :class:`list`\ [:class:`str`] --
+        #: List of options that were entered with a double dash
         self.kwargs_double_dash = {}
+        #: :class:`list`\ [:class:`str`] --
+        #: List of options that were entered using ``key=val`` syntax
         self.kwargs_equal_sign = {}
+        #: :class:`list`\ [:class:`str`, :class:`object`] --
+        #: List of option name and value as parsed (includes duplicates
+        #: in their original order)
         self.param_sequence = []
 
     def parse(self, argv=None):
-        r"""Parse args
+        r"""Parse CLI args
 
         :Call:
             >>> a, kw = parser.parse(argv=None)
@@ -390,18 +525,53 @@ class ArgReader(KwargParser):
 
 # Class with single_dash_split=False (default)
 class KeysArgReader(ArgReader):
+    r"""Subclass of :class:`ArgReader` for :func:`readkeys`
+
+    The class attribute ``KeysArgRead.single_dash_split`` is set to
+    ``False`` so that ``-opt val`` is interpreted as
+
+    .. code-block:: python
+
+        {"opt": "val"}
+    """
     __slots__ = ()
     single_dash_split = False
 
 
 # Class with single_dash_split=True (flags)
 class FlagsArgReader(ArgReader):
+    r"""Subclass of :class:`ArgReader` for :func:`readflags`
+
+    The class attribute ``FlagsArgRead.single_dash_split`` is set to
+    ``True`` so that ``-opt val`` is interpreted as
+
+    .. code-block:: python
+
+        {"o": True, "p": True, "t": True}
+
+    and ``"val"`` becomes an argument.
+    """
     __slots__ = ()
     single_dash_split = True
 
 
 # Class with args like ``tar -cvf this.tar``
 class TarFlagsArgReader(ArgReader):
+    r"""Subclass of :class:`ArgReader` for :func:`readflags`
+
+    The class attributes are
+
+    .. code-block:: python
+
+        TarArgRead.single_dash_split = True
+        TarArgRead.single_dash_lastkey = True
+
+    so that ``-opt val`` is interpreted as
+
+    .. code-block:: python
+
+        {"o": True, "p": True, "t": "val"}
+    """
     __slots__ = ()
     single_dash_split = True
     single_dash_lastkey = True

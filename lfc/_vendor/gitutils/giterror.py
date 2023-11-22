@@ -1,6 +1,6 @@
 r"""
-:mod:`giterror`: Errors for :mod:`gitutils` Git repo tools
-===========================================================
+:mod:`gitutils.giterror`: Errors for :mod:`gitutils` Git repo tools
+====================================================================
 
 This module provides a collection of error types relevant to the
 :mod:`gitutils` package. They are essentially the same as standard error

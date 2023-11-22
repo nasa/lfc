@@ -1,11 +1,93 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 r"""
-:mod:`shellutils`: Convenient system calls; remote or local
-=============================================================
+``shellutils``: System calls with STDOUT capture, SFTP, and more
+==================================================================
 
-:Versions:
-    * 2021-07-19 ``@ddalle``: v1.0
+This module mainly provides two types of tools:
+
+    *   convenience functions that wrap :class:`subprocess.Popen` that
+        simplify common use cases and
+    *   classes like :class:`Shell` and :class:`SSH` that create
+        persistent processes, usually logged into a remote host.
+
+The convenience functions include
+
+    * :func:`call`
+    * :func:`call_o`
+    * :func:`call_oe`
+    * :func:`call_q`
+    * :func:`check_o`
+
+Essentially each of these functions create an instance of
+:class:`subprocess.Popen` and then call
+:func:`subprocess.Popen.communicate`. They are all calls to
+:func:`_call` but with different defaults and outputs for each case. The
+``o`` stands for "output," as in STDOUT will be captured. The ``e`` is
+for "error," referring to STDERR capture, and ``q`` is for "quiet,"
+meaning that by default both STDOUT and STDERR will be suppressed.
+
+Finally, :func:`check_o` is very similar to
+:func:`subprocess.check_output`; it will capture STDOUT by default, but
+it will also raise an exception if tne command's return code is nonzero.
+All of these functions can also be used to execute a command on a remote
+host using the *host* keyword argument.
+
+The second category is collection of persistent-process classes:
+
+*   :class:`SSH`
+*   :class:`Shell`
+*   :class:`SFTP`
+*   :class:`SSHPortal`
+
+The first works by logging into a remote host and creating a process so
+that you can run a sequence of commands there. It starts with a
+
+.. code-block:: bash
+
+    ssh -q {host} {shell}
+
+command, for example
+
+.. code-block:: bash
+
+    ssh -q pfe bash
+
+It then sets STDIN, STDOUT, and STDERR of this process to be
+non-blocking so that you can run multiple commands and query STDOUT and
+the others more than one time.
+
+The second class, :class:`Shell`, works in a similar way but on the
+local host. It can be convenient because a :class:`Shell` instance has
+its own current working directory. It also enables writing code for
+which remote hosts and local hosts can share the vast majority of their
+code.
+
+:class:`SFTP` is a similar class that starts an SFTP session to a remote
+host and behaves much like the system ``sftp`` itself. However, users
+will generally prefer the fourth class to using this one directly.
+
+The :class:`SSHPortal` is simply a combination of :class:`SSH` and
+:class:`SFTP`. More specifically, it's a new class that have an instance
+of both :class:`SSH` and :class:`SFTP` as attributes. Although this
+requires two logins, it is usually preferable because it allows the
+:class:`SSH` instance to do detailed checks and can create folders with
+complex file permissions, while the :class:`SFTP` is used for the actual
+transfer of data.
+
+You can instantiate any of these classes (except :class:`Shell`, which
+usually takes no arguments) by just giving it the name of the remote
+host as a single positional parameter.
+
+.. code-block:: python
+
+    proc = SSH("pfe")
+
+These classes provide several common functions, such as
+:func:`SSH.listdir`, :func:`SSH.chdir`, :func:`SFTP.cd_local`, and
+:func:`SSHPortal.get` and :func:`SSHPortal.put`. But they (except for
+:class:`SFTP`) also have generic :func:`run` commands that allow for
+running arbitrary code by writing the command to STDIN.
 """
 
 # Standard library
@@ -110,6 +192,28 @@ class ShellutilsIsADirectoryError(IsADirectoryError, ShellutilsError):
 
 # Special class for file transfer
 class SSHPortal(object):
+    r"""Combined SSH and SFTP interface
+
+    This class works by logging into a remote host twice, once for a
+    shell (SSH) and another for SFTP.
+
+    :Call:
+        >>> portal = SSHPortal(host, cwd=None, encoding="utf-8")
+    :Inputs:
+        *host*: :class:`str`
+            Name of remote host to log into
+        *cwd*: {``None``} | :class:`str`
+            Optional initial absolute path of shell on *host*
+        *encoding*: {``"utf-8"``} | :class:`str`
+            Text encoding choice
+    :Outputs:
+        *portal*: :class:`SSHPortal`
+            Combined SSH and SFTP interface
+    :Attributes:
+        * :attr:`cwd`
+        * :attr:`sftp`
+        * :attr:`ssh`
+    """
    # --- Class attributes ---
     # Allowed instance attributes
     __slots__ = (
@@ -121,17 +225,40 @@ class SSHPortal(object):
    # --- __dunder__ ---
     # Initialization
     def __init__(self, host: str, cwd=None, encoding=DEFAULT_ENCODING):
-        # Open both
+        r"""Initialization method"""
+        # Open both processes
+        #: :class:`SFTP` -- File transfer interface for this instance
         self.sftp = SFTP(host, encoding=encoding)
+        #: :class:`SSH` -- Remote shell interface for this instance
         self.ssh = SSH(host, encoding=encoding)
         # Default working directory
         if cwd is None:
             cwd = os.getcwd()
-        # Save local working directory
+        #: :class:`str` -- Initial local working directory
         self.cwd = cwd
 
    # --- Transfer ---
     def put(self, flocal: str, fremote=None, wait=True, **kw):
+        r"""Transfer a file from local to remote host
+
+        :Call:
+            >>> portal.put(flocal, fremote=None, wait=True, **kw)
+        :Inputs:
+            *portal*: :class:`SSHPortal`
+                Combined SSH and SFTP interface
+            *flocal*: :class:`str`
+                Name of local file to send
+            *fremote*: {``None``} | :class:`str`
+                Name of destination file on remote host; if ``None``,
+                then ``os.path.basename(flocal)``
+            *wait*: {``True``} | ``False``
+                Option to block (wait) until transfer completes
+            *progress*: {*wait*} | ``True`` | ``False``
+                Option to display transfer progress percentage
+            *fprog*: {``None``} | :class:`str`
+                File name to show during transfer; default is *flocal*
+                truncated to fit in current terminal width
+        """
         # Process options
         progress = kw.get("progress", wait)
         fprog = kw.get("fprog")
@@ -151,6 +278,26 @@ class SSHPortal(object):
             self._wait_put(flocal, fremote, progress=progress, fprog=fprog)
 
     def get(self, fremote: str, flocal=None, wait=True, **kw):
+        r"""Transfer a file from remote to local host
+
+        :Call:
+            >>> portal.get(fremote, flocal=None, wait=True, **kw)
+        :Inputs:
+            *portal*: :class:`SSHPortal`
+                Combined SSH and SFTP interface
+            *fremote*: :class:`str`
+                Name of remote file to send
+            *flocal*: {``None``} | :class:`str`
+                Name of destination file on local host; if ``None``,
+                then ``os.path.basename(fremote)``
+            *wait*: {``True``} | ``False``
+                Option to block (wait) until transfer completes
+            *progress*: {*wait*} | ``True`` | ``False``
+                Option to display transfer progress percentage
+            *fprog*: {``None``} | :class:`str`
+                File name to show during transfer; default is *fremote*
+                truncated to fit in current terminal width
+        """
         # Process options
         progress = kw.get("progress", wait)
         fprog = kw.get("fprog")
@@ -305,7 +452,20 @@ class SSHPortal(object):
         self.sftp.close()
 
    # --- File stats ---
-    def abspath_local(self, fname: str):
+    def abspath_local(self, fname: str) -> str:
+        r"""Return absolute path to local file/folder
+
+        :Call:
+            >>> fabs = portal.abspath_local(fname)
+        :Inputs:
+            *portal*: :class:`SSHPortal`
+                Combined remote shell and file transfer portal
+            *fname*: :class:`str`
+                Local path to file/folder
+        :Outputs:
+            *fabs*: :class:`str`
+                Local absolute path to *fname*
+        """
         # Check input
         if os.path.isabs(fname):
             # Already absolute
@@ -315,12 +475,38 @@ class SSHPortal(object):
             return os.path.join(self.cwd, fname)
 
     def assert_isfile_local(self, fname: str):
+        r"""Assert that a file exists locally
+
+        :Call:
+            >>> portal.assert_isfile_local(fname)
+        :Inputs:
+            *portal*: :class:`SSHPortal`
+                Combined remote shell and file transfer portal
+            *fname*: :class:`str`
+                Path to local file
+        :Raises:
+            :class:`ShellutilsFileNotFoundError` if *fname* does not
+            exist relative to *portal.cwd*
+        """
         # Check for file
         if not self.isfile_local(fname):
             raise ShellutilsFileNotFoundError(
                 'No such file or folder "%s"' % fname)
 
-    def getsize_local(self, fname: str):
+    def getsize_local(self, fname: str) -> int:
+        r"""Get size of local file
+
+        :Call:
+            >>> st_size = portal.getsize_local(fname)
+        :Inputs:
+            *portal*: :class:`SSHPortal`
+                Combined remote shell and file transfer portal
+            *fname*: :class:`str`
+                Name of local file
+        :Outputs:
+            *st_size*: :class:`int`
+                Size of file in bytes
+        """
         # Check for local file
         self.assert_isfile_local(fname)
         # Absolutize path
@@ -328,11 +514,37 @@ class SSHPortal(object):
         # Get size
         return os.path.getsize(fabs)
 
-    def getsize_remote(self, fname: str):
+    def getsize_remote(self, fname: str) -> int:
+        r"""Get size of remote file
+
+        :Call:
+            >>> st_size = portal.getsize_local(fname)
+        :Inputs:
+            *portal*: :class:`SSHPortal`
+                Combined remote shell and file transfer portal
+            *fname*: :class:`str`
+                Name of remote file
+        :Outputs:
+            *st_size*: :class:`int`
+                Size of file in bytes
+        """
         # Get size of remote path
         return self.ssh.getsize(fname)
 
-    def isfile_local(self, fname: str):
+    def isfile_local(self, fname: str) -> bool:
+        r"""Check if local file exists
+
+        :Call:
+            >>> is_file = portal.isfile_local(fname)
+        :Inputs:
+            *portal*: :class:`SSHPortal`
+                Combined remote shell and file transfer portal
+            *fname*: :class:`str`
+                Name of local file
+        :Outputs:
+            *is_file*: ``True`` | ``False``
+                Whether *fname* exists
+        """
         # Validate file name
         validate_absfilename(fname, sep=os.sep)
         # Absolutize
@@ -341,6 +553,16 @@ class SSHPortal(object):
         return os.path.isfile(fabs)
 
     def remove_local(self, fname: str):
+        r"""Delete a local file, if it exists
+
+        :Call:
+            >>> portal.remove_local(fname)
+        :Inputs:
+            *portal*: :class:`SSHPortal`
+                Combined remote shell and file transfer portal
+            *fname*: :class:`str`
+                Name of local file
+        """
         # Assert the file is present
         self.assert_isfile_local(fname)
         # Absolutize
@@ -368,9 +590,6 @@ class SSHBase(object):
     r"""Base class for both :class:`SSH` and :class:`SFTP`
 
     This class does not have an :func:`__init__` method
-
-    :Versions:
-        * 2022-12-19 ``@ddalle``: v1.0
     """
     # Close the portal
     def close(self):
@@ -476,6 +695,24 @@ class SSHBase(object):
 
 # Class to get a persistent SFTP process
 class SFTP(SSHBase):
+    r"""Interface to an SFTP process
+
+    :Call:
+        >>> sftp = SFTP(host, **kw)
+    :Inputs:
+        *host*: :class:`str`
+            Name of remote host to log into
+        *encoding*: {``"utf-8"``} | :class:`str`
+            Text encoding choice
+    :Outputs:
+        *sftp*: :class:`SFTP`
+            SFTP file transfer instance
+    :Attributes:
+        * :attr:`encoding`
+        * :attr:`host`
+        * :attr:`log`
+        * :attr:`proc`
+    """
    # --- Class attributes ---
     # Instance attribute list
     __slots__ = (
@@ -488,22 +725,38 @@ class SFTP(SSHBase):
    # --- __dunder__ methods ---
     # Initialization method
     def __init__(self, host: str, **kw):
-        # Encoding
+        r"""Initialization method"""
+        #: :class:`str` -- Text encoding for this instance
         self.encoding = kw.get("encoding", DEFAULT_ENCODING)
-        # Save host name
+        #: :class:`str` -- Name of remote host for this instance
         self.host = host
-        # Open a subprocess
+        #: :class:`subprocess.Popen` --
+        #: Subprocess used to interface ``sftp`` executable
         self.proc = Popen(
             ["sftp", "-q", host], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         # Make sure to have non-blocking STDOUT and STDERR
         set_nonblocking(self.proc.stdout)
         set_nonblocking(self.proc.stderr)
-        # Initialize log
+        #: :class:`list`\ [:class:`str`] --
+        #: Log messages
         self.log = []
 
    # --- Copy files ---
     # Put a file
     def put(self, flocal: str, fremote=None):
+        r"""Transfer a file from local host to remote
+
+        :Call:
+            >>> sftp.put(flocal, fremote=None)
+        :Inputs:
+            *sftp*: :class:`SFTP`
+                SFTP file transfer instance
+            *flocal*: :class:`str`
+                Name of file on local host
+            *fremote*: {``None``} | :class:`str`
+                Name of destination file on remote host, default is
+                ``os.path.basename(flocal)``
+        """
         # SFTP uses forward slashes
         flocal = flocal.replace(os.sep, '/')
         # Format command to copy file
@@ -520,6 +773,19 @@ class SFTP(SSHBase):
 
     # Get a file
     def get(self, fremote: str, flocal=None):
+        r"""Transfer a file from remote host to local
+
+        :Call:
+            >>> sftp.get(fremote, flocal=None)
+        :Inputs:
+            *sftp*: :class:`SFTP`
+                SFTP file transfer instance
+            *fremote*: :class:`str`
+                Name of file on remote host
+            *flocal*: {``None``} | :class:`str`
+                Name of destination file on local host, default is
+                ``os.path.basename(fremote)``
+        """
         # Format command to copy file
         if flocal is None:
             # Copy file to same name in PWD
@@ -538,6 +804,14 @@ class SFTP(SSHBase):
    # --- Basic control ---
     # Wait until current put/get commands are done
     def wait(self):
+        r"""Wait for any current commands to exit
+
+        :Call:
+            >>> sftp.wait()
+        :Inputs:
+            *sftp*: :class:`SFTP`
+                SFTP file transfer instance
+        """
         # Test if a command runs right away
         self.run("echo")
         # Loop until STDERR shows up
@@ -559,7 +833,18 @@ class SFTP(SSHBase):
             time.sleep(SLEEP_TIME)
 
    # --- Shell ---
-    def getcwd_local(self):
+    def getcwd_local(self) -> str:
+        r"""Get current working directory for local side
+
+        :Call:
+            >>> cwd = sftp.getcwd_local()
+        :Inputs:
+            *sftp*: :class:`SFTP`
+                SFTP file transfer instance
+        :Outputs:
+            *cwd*: :class:`str`
+                Absolute path to current working directory
+        """
         # Make sure no file transfers are active
         self.wait()
         # Run command
@@ -572,7 +857,18 @@ class SFTP(SSHBase):
         if line.startswith(_LPWD_PREFIX):
             return line[len(_LPWD_PREFIX):]
 
-    def getcwd_remote(self):
+    def getcwd_remote(self) -> str:
+        r"""Get current working directory for remote side
+
+        :Call:
+            >>> cwd = sftp.getcwd_remote()
+        :Inputs:
+            *sftp*: :class:`SFTP`
+                SFTP file transfer instance
+        :Outputs:
+            *cwd*: :class:`str`
+                Absolute path to current working directory
+        """
         # Make sure no file transfers are active
         self.wait()
         # Run command
@@ -586,16 +882,47 @@ class SFTP(SSHBase):
             return line[len(_PWD_PREFIX):]
 
     def cd_local(self, path: str):
+        r"""Change working directory on local side
+
+        :Call:
+            >>> sftp.cd_local(path)
+        :Inputs:
+            *sftp*: :class:`SFTP`
+                SFTP file transfer instance
+            *path*: :class:`str`
+                Folder (absolute or relative) to change to
+        """
         # Run command to change local directory
         self.run("lcd %s" % path)
 
     def cd_remote(self, path: str):
+        r"""Change working directory on remote side
+
+        :Call:
+            >>> sftp.cd_remote(path)
+        :Inputs:
+            *sftp*: :class:`SFTP`
+                SFTP file transfer instance
+            *path*: :class:`str`
+                Folder (absolute or relative) to change to
+        """
         # Run command to change remote directory
         self.run("cd %s" % path)
 
    # --- Basic command tools ---
     # Read STDOUT, waiting a while
     def wait_stdout(self):
+        r"""Read current STDOUT, or wait until some appears
+
+        :Call:
+            >>> txt = sftp.wait_stdout()
+        :Inputs:
+            *sftp*: :class:`SFTP`
+                SFTP file transfer instance
+        :Outputs:
+            *txt*: :class:`str` | ``None``
+                Text read from STDOUT, if any
+        """
         # Read stdout
         for _ in range(N_TIMEOUT):
             # Read current STDOUT
@@ -620,7 +947,7 @@ class SSH(SSHBase):
     :Inputs:
         *host*: ``None`` | :class:`str`
             Name of server to login to using SSH (use local if ``None``)
-        *executable*: {``"bash"``} | :calss:`str`
+        *executable*: {``"bash"``} | :class:`str`
             Executable to use on the remote host
         *encoding*: {``"utf-8"``} | :class:`str`
             Encoding for STDOUT, etc. bytes
@@ -628,19 +955,11 @@ class SSH(SSHBase):
         *ssh*: :class:`SSH`
             Persistent SSH subprocess
     :Attributes:
-        *ssh.encoding*: *encoding*
-            Encoding for STDIN, STDOUT, etc.
-        *ssh.executable*: *executable*
-            Executable used for process on remote host
-        *ssh.host*: *host*
-            Name of remote host
-        *ssh.log*: :class:`list`\ [:class:`str`]
-            List of commands issued using :func:`ssh.run`
-        *ssh.proc*: :class:`subprocess.Popen`
-            Interface to local subprocess
-    :Versions:
-        * 2022-12-17 ``@ddalle``: v0.1
-        * 2023-08-11 ``@ddalle``: v1.0
+        * :attr:`encoding`
+        * :attr:`executable`
+        * :attr:`host`
+        * :attr:`log`
+        * :attr:`proc`
     """
    # --- Class attributes ---
     # Instance attribute list
@@ -656,11 +975,13 @@ class SSH(SSHBase):
    # --- __dunder__ methods ---
     # Initialization method
     def __init__(self, host=None, **kw):
-        # Encoding
+        #: :class:`str` -- Encoding for this method
         self.encoding = kw.get("encoding", DEFAULT_ENCODING)
-        # Executable
+        #: :class:`str` -- Executable for remote process
         self.executable = kw.get("executable", "bash")
-        # Save host name
+        #: :class:`str` | ``None`` --
+        #: Name of remote host for this process; if ``None`` then local
+        #: process
         self.host = host
         # Form command depending on whether we have a *host* or not
         if host is None:
@@ -669,12 +990,13 @@ class SSH(SSHBase):
         else:
             # Remote
             startcmd = ["ssh", "-q", host, self.executable]
-        # Open a subprocess
+        #: :class:`subprocess.Popen` --
+        #: Subprocess interface for ``ssh`` for this instance
         self.proc = Popen(startcmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         # Make sure to have non-blocking STDOUT and STDERR
         set_nonblocking(self.proc.stdout)
         set_nonblocking(self.proc.stderr)
-        # Initialize log
+        #: :class:`list`\ [:class:`str`] -- Log messages
         self.log = []
         # Initialize STDOUT container
         self._stdout = None
@@ -837,7 +1159,7 @@ class SSH(SSHBase):
         # If the folder exists, the returncode is ``0``
         return returncode == 0
 
-    def listdir(self, fdir="."):
+    def listdir(self, fdir=".") -> list:
         r"""List contents of a folder
 
         :Call:
@@ -1239,27 +1561,19 @@ class Shell(SSH):
     :Inputs:
         *host*: :class:`str`
             Name of server to login to using SSH
-        *executable*: {``"bash"``} | :calss:`str`
+        *executable*: {``"bash"``} | :class:`str`
             Executable to use on the remote host
         *encoding*: {``"utf-8"``} | :class:`str`
             Encoding for STDOUT, etc. bytes
     :Outputs:
-        *ssh*: :class:`SSH`
-            Persistent SSH subprocess
+        *shell*: :class:`Shell`
+            Persistent local subprocess
     :Attributes:
-        *ssh.encoding*: *encoding*
-            Encoding for STDIN, STDOUT, etc.
-        *ssh.executable*: *executable*
-            Executable used for process on remote host
-        *ssh.host*: ``None``
-            Name of remote host
-        *ssh.log*: :class:`list`\ [:class:`str`]
-            List of commands issued using :func:`ssh.run`
-        *ssh.proc*: :class:`subprocess.Popen`
-            Interface to local subprocess
-    :Versions:
-        * 2022-12-17 ``@ddalle``: v0.1
-        * 2023-08-11 ``@ddalle``: v1.0
+        * :attr:`encoding`
+        * :attr:`executable`
+        * :attr:`host`
+        * :attr:`log`
+        * :attr:`proc`
     """
    # --- __dunder__ methods ---
     # Initialization method

@@ -3,10 +3,10 @@ r"""
 :mod:`gitutils.gitrepo`: Interact with git repos using system interface
 ========================================================================
 
-This module provides the :class:`GitRepo` class, which both provides a
-basic interface to a git repository (whether working or bare) and a
-large-file client (LFC) to handle files not optimized for tracking
-directly by git.
+This module provides the :class:`GitRepo` class, which provides a basic
+interface to a git repository (whether working or bare). Users may
+perform basic git operations such as ``git-push`` and ``git-pull`` using
+commands like :func:`GitRepo.push`, :func:`GitRepo.pull`.
 
 """
 
@@ -95,9 +95,11 @@ class GitRepo(object):
     :Outputs:
         *repo*: :class:`GitRepo`
             Interface to git repository
-    :Versions:
-        * 2022-12-21 ``@ddalle``: v1.0
-        * 2023-08-24 ``@ddalle``: v2.0; remove LFC methods
+    :Attributes:
+        * :attr:`bare`
+        * :attr:`gitdir`
+        * :attr:`host`
+        * :attr:`shell`
     """
    # --- Class attributes ---
     # Class attributes
@@ -112,13 +114,21 @@ class GitRepo(object):
 
    # --- __dunder__ ---
     def __init__(self, where=None):
+        r"""Initialization method"""
         # Initialize slots
+        #: ``None`` | :class:`gitutils._vendor.shellutils.SSH` --
+        #: Optional persistent subprocess to run commands with; usually
+        #: not used
         self.shell = None
         # Identify host and path
-        self.host, path = identify_host(where)
-        # Check for a bare repo
+        host, path = identify_host(where)
+        #: ``None`` | :class:`str` --
+        #: Name of remote host, if any; usually not used
+        self.host = host
+        #: ``True`` | ``False`` --
+        #: Whether this instance is in a bare repository
         self.bare = is_bare(where)
-        # Record root directory
+        #: :class:`str` -- Absolute path to root directory
         self.gitdir = self.get_gitdir(path)
         # No temporary working directory
         self._tmpbase = None
@@ -444,6 +454,7 @@ class GitRepo(object):
             *m*, *message*: {``None``} | :class:`str`
                 Commit message
             *a*: ``True`` | ``False``
+                Option to commit all modifications to tracked files
         :Versions:
             * 2023-10-24 ``@ddalle``: v1.0
         """
@@ -975,9 +986,31 @@ class GitRepo(object):
 
    # --- Config ---
     def get_user_name(self) -> str:
+        r"""Get current user name according to git config
+
+        :Call:
+            >>> uid = repo.get_user_name()
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+        :Outputs:
+            *uid*: :class:`str`
+                User name saved in ``.git/config``
+        """
         return self.get_gitconfig_opt("user", "name")
 
     def get_user_email(self) -> str:
+        r"""Get author's email address according to git config
+
+        :Call:
+            >>> addr = repo.get_user_email()
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+        :Outputs:
+            *addr*: :class:`str`
+                Email address
+        """
         return self.get_gitconfig_opt("user", "email")
 
     def get_gitconfig_opt(self, sec: str, opt: str) -> str:
@@ -985,6 +1018,16 @@ class GitRepo(object):
 
         :Call:
             >>> v = repo.get_gitconfig_opt(sec, opt)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *sec*: :class:`str`
+                Name of config section to read
+            *opt*: :class:`str`
+                Name of option to read in config section
+        :Outputs:
+            *v*: :class:`object`
+                Value from ``.git/config`` for *sec* > *opt*
         """
         return self.check_o(["git", "config", f"{sec}.{opt}"]).strip()
 
