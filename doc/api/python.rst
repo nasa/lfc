@@ -7,6 +7,10 @@ Links to built-in Python features
 
     https://docs.python.org/3/library/functions.html#bool
 
+.. class:: callable
+
+    https://docs.python.org/3/library/functions.html#callable
+
 .. class:: dict
 
     https://docs.python.org/3/library/stdtypes.html#dict
@@ -27,6 +31,10 @@ Links to built-in Python features
 
     https://docs.python.org/3/library/functions.html#object
 
+.. class:: set
+
+    https://docs.python.org/3/library/stdtypes.html#set
+
 .. class:: str
 
     https://docs.python.org/3/library/stdtypes.html#str
@@ -34,6 +42,10 @@ Links to built-in Python features
 .. class:: tuple
 
     https://docs.python.org/3/library/stdtypes.html#tuple
+
+.. class:: type
+
+    https://docs.python.org/3/library/functions.html#type
 
 .. class:: file
 

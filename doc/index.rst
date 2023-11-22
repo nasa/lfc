@@ -57,6 +57,8 @@ use cases where LFC might be useful.
 
     api/lfc
     api/python
+    api/standardlib
+    api/thirdparty
 
 .. only:: html
 
