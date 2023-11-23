@@ -23,7 +23,7 @@ fdoc = os.path.abspath(".")
 repo = os.path.basename(fgit)
 
 # Basic title/subtitle
-desc = "``lfc``: a git extension for large files"
+desc = "a git extension for large files"
 
 # Paths to append
 for _f in [fgit]:

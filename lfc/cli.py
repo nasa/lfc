@@ -30,17 +30,230 @@ from ._vendor.argread import ArgReader
 
 
 # Help message
-HELP_LFC = r"""GitUtils and Large File Control control (lfc)
+HELP_LFC = r"""File Control control (lfc)
+
+Track and share large and/or binary files in git repositories.
 
 :Usage:
-
     .. code-block:: console
 
         $ lfc CMD [OPTIONS]
 
 :Inputs:
-    * *CMD*
+    * *CMD*: name of command to run
+
+    Available commands are:
+
+    ==================  ===========================================
+    Command             Description
+    ==================  ===========================================
+    ``add``             Add or update a large file
+    ``auto-pull``       Pull all mode-2 files in working repo
+    ``auto-push``       Push all mode-2 files in working repo
+    ``clone``           Clone git repo, install hooks, and autopull
+    ``checkout``        Check out version of large file
+    ``config``          View or set an LFC config variable
+    ``init``            Initialize LFC for current git repo
+    ``install-hooks``   Create git hooks for autopll and autopush
+    ``ls-files``        List some or all ``.lfc`` files
+    ``pull``            Pull one or more large files
+    ``push``            Push one or more large files
+    ``remote``          View or set an LFC remote cache
+    ``replace-dvc``     Replace DVC with LFC for current repo
+    ``set-mode``        Change mode of an LFC file
+    ``show``            Show bytes of large file, even in bare repo
+    ==================  ===========================================
 """
+
+HELP_ADD = r"""``lfc-add``: Add or update a large file
+
+This command first finds all files in a WORKING repo (non-bare) that
+match one or more user-specified file name patterns relative to the
+current working directory and then  performs the following actions for
+each corresponding large file:
+
+    * Calculates the SHA-256 hash of the contents of that file
+    * Stores that file in ``.lfc/cache/``
+    * Creates a metadata file that appends ``.lfc`` to the file name
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc add FILE1 [FILE2, ...] [OPTIONS]
+
+:Inputs:
+    * *FILE1*: Name or pattern for first large file(s) to add
+    * *FILE2*: Name or pattern for second large file(s) to add
+
+:Options:
+    -h, --help
+        Display this help message and exit
+
+    --mode MODE
+        Set mode of large file(s) to *MODE*: {1} | 2
+
+    -1
+        Shortcut for ``--mode 1`` (default)
+
+    -2
+        Shortcut for ``--mode 2``
+"""
+
+HELP_AUTOPULL = r"""``lfc-auto-pull``: Pull all mode-2 files
+
+This command can only be run in a WORKING repo. It will pull the latest
+version of all mode-2 files. It will not pull any old versions of large
+files. This can be configured to be either all large files (modes 1 and
+2) or no large files.
+
+This command is triggered automatically after ``git-pull`` if the LFC
+hooks are installed.
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc auto-pull
+
+:Options:
+    -h, --help
+        Display this help message and exit
+"""
+
+HELP_AUTOPUSH = r"""``lfc-auto-push``: Push all mode-2 files
+
+This command can only be run in a WORKING repo. It will push the latest
+version of all mode-2 files. It will not push any old versions of large
+files. This can be configured to be either all large files (modes 1 and
+2) or no large files.
+
+This command is triggered automatically after ``git-push`` if the LFC
+hooks are installed.
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc auto-push
+
+:Options:
+    -h, --help
+        Display this help message and exit
+"""
+
+HELP_CHECKOUT = r"""``lfc-checkout``: Check out a large file from cache
+
+This function first finds one or more files that match at least one of
+the file name patterns given by the user. The goal is to find ``.lfc``
+files, since the original large files are not expected to exist. Then
+for each such file, it will try to copy a file from the local cache
+based on the hash in the ``.lfc`` file.
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc checkout FILE1 [FILE2 ...] [OPTIONS]
+
+:Inputs:
+    * *FILE1*: First file name or file name pattern
+    * *FILE2*: Second file name or file name pattern
+
+:Options:
+    -h, --help
+        Display this help message and exit
+
+    -f, --force
+        Overwrite existing large file even if uncached
+"""
+
+HELP_CONFIG = r"""``lfc-config``: View or set LFC config variables
+
+:Call:
+    .. code-block:: console
+
+        $ lfc config get SECTION.OPT [OPTIONS]
+        $ lfc config set SECTION.OPT VAL [OPTIONS]
+
+:Inputs:
+    * *SECTION*: Config section name
+    * *OPT*: Option within section to view/set
+    * *VAL*: Value to set option to
+
+:Options:
+    -h, --help
+        Display this help message and exit
+
+:Examples:
+    This will set the default "remote" to ``hub``:
+
+    .. code-block:: console
+
+        $ lfc config set core.remote hub
+
+    This will print the name of the default remote (if set)
+
+    .. code-block:: console
+
+        $ lfc config get core.remote
+"""
+
+HELP_INIT = r"""``lfc-init``: Initialize LFC repo
+
+This creates two folders (if they don't exist):
+
+* ``.lfc/``
+* ``.lfc/cache/``
+
+And several files:
+
+* ``.lfc/config``
+* ``.lfc/.gitignore``
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc init [OPTIONS]
+
+:Options:
+    -h, --help
+        Display this help message and exit
+"""
+
+HELP_INSTALL_HOOKS = r"""``lfc-install-hooks``: Install LFC git-hooks
+
+This will create two executable files
+
+* ``.git/hooks/pre-push``
+* ``.git/hooks/post-merge``
+
+relative to the top-level folder, unless they already exist.
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc install-hooks [OPTIONS]
+
+:Options:
+    -h, --help
+        Display this help message and exit
+"""
+
+HELP_LS_FILES = r"""``lfc-ls-files``: List large files
+
+:Options:
+    -h, --help
+        Display this help message and exit
+"""
+
+
+# Dictionary of help commands
+HELP_DICT = {
+    "add": HELP_ADD,
+    "auto-pull": HELP_AUTOPULL,
+    "auto-push": HELP_AUTOPUSH,
+    "checkout": HELP_CHECKOUT,
+    "config": HELP_CONFIG,
+    "init": HELP_INIT,
+    "install-hooks": HELP_INSTALL_HOOKS,
+}
 
 
 # Customized CLI parser
@@ -51,12 +264,15 @@ class LFCArgParser(ArgReader):
     # Aliases
     _optmap = {
         "d": "default",
+        "h": "help",
         "q": "quiet",
     }
 
     # Options that never take a value
     _optlist_noval = (
         "default",
+        "help",
+        "quiet",
     )
 
     # Options that convert from string
@@ -528,6 +744,12 @@ def main() -> int:
         print("Unexpected command '%s'" % cmdname)
         print("Options are: " + " | ".join(list(CMD_DICT.keys())))
         return IERR_CMD
+    # Check for "help" option
+    if kw.get("help", False):
+        # Get help message for this command; default to main help
+        msg = HELP_DICT.get(cmdname, HELP_LFC)
+        print(msg)
+        return 0
     # Run function
     try:
         ierr = func(*a[1:], **kw)
