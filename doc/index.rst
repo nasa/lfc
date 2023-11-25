@@ -56,6 +56,7 @@ use cases where LFC might be useful.
     :maxdepth: 2
 
     api/lfc
+    api/argread/index
     api/python
     api/standardlib
     api/thirdparty
