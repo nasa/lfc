@@ -57,6 +57,7 @@ use cases where LFC might be useful.
 
     api/lfc
     api/argread/index
+    api/kwparse
     api/python
     api/standardlib
     api/thirdparty
