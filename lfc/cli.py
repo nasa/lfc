@@ -238,6 +238,21 @@ relative to the top-level folder, unless they already exist.
 
 HELP_LS_FILES = r"""``lfc-ls-files``: List large files
 
+This command lists all ``.lfc`` files matching specified constraints. If
+no arguments are given, it will list all ``.lfc`` files in the current
+working directory or any folder within (recursively). Users can limit
+this to all files starting with ``m``, for example, or apply any other
+constratins.
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc ls-files [PAT1 [PAT2 ...]] [OPTIONS]
+
+:Inputs:
+    * *PAT1*: First pattern for files to list
+    * *PAT2*: Second pattern for files to list
+
 :Options:
     -h, --help
         Display this help message and exit
@@ -253,6 +268,7 @@ HELP_DICT = {
     "config": HELP_CONFIG,
     "init": HELP_INIT,
     "install-hooks": HELP_INSTALL_HOOKS,
+    "ls-files": HELP_LS_FILES,
 }
 
 

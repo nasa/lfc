@@ -116,6 +116,9 @@ from ._vendor.kwparse import (
 )
 
 
+__version__ = "1.3.0"
+
+
 # Regular expression for options like "cdfr=1.3"
 REGEX_EQUALKEY = re.compile(r"(\w+)=([^=].*)")
 
