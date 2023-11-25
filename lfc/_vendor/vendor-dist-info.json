@@ -10,9 +10,9 @@
     "argread": {
         "url": "ssh://linux252/nobackup/ddalle/cape/hub/src/argread.git",
         "vcs_info": {
-            "commit_id": "dbda20249ba87db4804d33f600ad7c903b8514f8",
+            "commit_id": "0230410225472c89d691a7c739c984d67374a739",
             "vcs": "git"
         },
-        "version": " 1.3.0"
+        "version": " 1.3.1"
     }
 }

@@ -116,7 +116,7 @@ from ._vendor.kwparse import (
 )
 
 
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 
 
 # Regular expression for options like "cdfr=1.3"

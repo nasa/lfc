@@ -27,6 +27,7 @@ from .lfcclone import lfc_clone
 from .lfcerror import GitutilsError
 from .lfcrepo import LFCRepo
 from ._vendor.argread import ArgReader
+from ._vendor.argread.clitext import compile_rst
 
 
 # Help message
@@ -748,7 +749,7 @@ def main() -> int:
     kw.pop("__replaced__", None)
     # Check for no commands
     if len(a) == 0:
-        print(HELP_LFC)
+        print(compile_rst(HELP_LFC))
         return 0
     # Get command name
     cmdname = a[0]
@@ -764,7 +765,7 @@ def main() -> int:
     if kw.get("help", False):
         # Get help message for this command; default to main help
         msg = HELP_DICT.get(cmdname, HELP_LFC)
-        print(msg)
+        print(compile_rst(msg))
         return 0
     # Run function
     try:
