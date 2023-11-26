@@ -8,10 +8,14 @@ from setuptools import setup, find_packages
 # Local software hub
 hub = "git+ssh://pfe/nobackupp16/ddalle/cape/hub/src/"
 
+# List of packages
+pkgs = find_packages()
+pkgs.remove("lfc.clidoc")
+
 # Create the build
 setup(
     name="lfc",
-    packages=find_packages(),
+    packages=pkgs,
     install_requires=[
         "PyYAML",
     ],
