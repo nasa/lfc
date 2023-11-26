@@ -67,6 +67,7 @@ Track and share large and/or binary files in git repositories.
 """
 
 HELP_ADD = r"""``lfc-add``: Add or update a large file
+=======================================================
 
 This command first finds all files in a WORKING repo (non-bare) that
 match one or more user-specified file name patterns relative to the

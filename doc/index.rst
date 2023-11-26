@@ -49,6 +49,7 @@ use cases where LFC might be useful.
 
     examples/getting-started
     story
+    cli/index
 
 **lfc Python package:**
 

@@ -18,6 +18,7 @@ setup(
     packages=pkgs,
     install_requires=[
         "PyYAML",
+        "numpy",
     ],
     description="Git add-on for large file control",
     entry_points={
