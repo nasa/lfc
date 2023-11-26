@@ -66,7 +66,8 @@ Track and share large and/or binary files in git repositories.
     ==================  ===========================================
 """
 
-HELP_ADD = r"""``lfc-add``: Add or update a large file
+HELP_ADD = r"""
+``lfc-add``: Add or update a large file
 =======================================================
 
 This command first finds all files in a WORKING repo (non-bare) that
@@ -101,7 +102,9 @@ each corresponding large file:
         Shortcut for ``--mode 2``
 """
 
-HELP_AUTOPULL = r"""``lfc-auto-pull``: Pull all mode-2 files
+HELP_AUTOPULL = r"""
+``lfc-auto-pull``: Pull all mode-2 files
+============================================================
 
 This command can only be run in a WORKING repo. It will pull the latest
 version of all mode-2 files. It will not pull any old versions of large
@@ -120,8 +123,11 @@ hooks are installed.
     -h, --help
         Display this help message and exit
 """
+HELP_AUTOPULL
 
-HELP_AUTOPUSH = r"""``lfc-auto-push``: Push all mode-2 files
+HELP_AUTOPUSH = r"""
+``lfc-auto-push``: Push all mode-2 files
+============================================================
 
 This command can only be run in a WORKING repo. It will push the latest
 version of all mode-2 files. It will not push any old versions of large
@@ -141,7 +147,9 @@ hooks are installed.
         Display this help message and exit
 """
 
-HELP_CHECKOUT = r"""``lfc-checkout``: Check out a large file from cache
+HELP_CHECKOUT = r"""
+``lfc-checkout``: Check out a large file from cache
+======================================================================
 
 This function first finds one or more files that match at least one of
 the file name patterns given by the user. The goal is to find ``.lfc``
@@ -166,7 +174,9 @@ based on the hash in the ``.lfc`` file.
         Overwrite existing large file even if uncached
 """
 
-HELP_CONFIG = r"""``lfc-config``: View or set LFC config variables
+HELP_CONFIG = r"""
+``lfc-config``: View or set LFC config variables
+==================================================================
 
 :Call:
     .. code-block:: console
@@ -197,7 +207,9 @@ HELP_CONFIG = r"""``lfc-config``: View or set LFC config variables
         $ lfc config get core.remote
 """
 
-HELP_INIT = r"""``lfc-init``: Initialize LFC repo
+HELP_INIT = r"""
+``lfc-init``: Initialize LFC repo
+=================================================
 
 This creates two folders (if they don't exist):
 
@@ -238,7 +250,9 @@ relative to the top-level folder, unless they already exist.
         Display this help message and exit
 """
 
-HELP_LS_FILES = r"""``lfc-ls-files``: List large files
+HELP_LS_FILES = r"""
+``lfc-ls-files``: List large files
+====================================
 
 This command lists all ``.lfc`` files matching specified constraints. If
 no arguments are given, it will list all ``.lfc`` files in the current

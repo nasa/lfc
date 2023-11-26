@@ -12,4 +12,10 @@ commands largely mirror those of `git <https://git-scm.com>`_.
 .. toctree::
     :maxdepth: 1
 
+    lfc-init
     lfc-add
+    lfc-checkout
+    lfc-config
+    lfc-ls-files
+    lfc-auto-pull
+    lfc-auto-push
