@@ -2,6 +2,7 @@
 # Local imports
 from lfc._vendor.argread.clitext import (
     BOLD,
+    BOLDITALIC,
     ITALIC,
     PLAIN,
     compile_rst)
@@ -22,7 +23,7 @@ something"""
     txt2 = "**emph**"
     # Insert bold chars?
     out2 = compile_rst(txt2)
-    assert out2 == f"{BOLD}emph{PLAIN}"
+    assert out2 == f"{BOLDITALIC}emph{PLAIN}"
     # Test italic
     assert compile_rst("*it*") == f"{ITALIC}it{PLAIN}"
     # Test section
@@ -35,6 +36,6 @@ something"""
     # Test UID
     assert compile_rst("``@ddalle``") == "@ddalle"
     # Test general literal
-    assert compile_rst("``fname``") == "fname"
+    assert compile_rst("``fname``") == f"{BOLD}fname{PLAIN}"
     # Test section
     assert compile_rst("Title\n========") == "Title"

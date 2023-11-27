@@ -54,6 +54,22 @@ def italic(txt: str) -> str:
     return ITALIC + txt + PLAIN
 
 
+# Function to print bold & italic
+def bolditalic(txt: str) -> str:
+    r"""Produce bold-italic text string for console
+
+    :Call:
+        >>> out = italic(txt)
+    :Inputs:
+        *txt*: :class:`str`
+            Text to mark as bold
+    :Outputs:
+        *out*: :class:`str`
+            Compiled text
+    """
+    return BOLDITALIC + txt + PLAIN
+
+
 # Function to take out extensive markup for help messages
 def compile_rst(doc: str) -> str:
     r"""Remove some extraneous markup for command-line help messages
@@ -93,13 +109,13 @@ def compile_rst(doc: str) -> str:
 
     # Generic literals
     def repllit(g):
-        # Strip "``"
-        return g.group(1)
+        # Strip "``", bold
+        return bold(g.group(1))
 
     # Remove **emphasis**
     def replemph(g):
-        # Strip "**"
-        return bold(g.group(1))
+        # Strip "**", bold+italic
+        return bolditalic(g.group(1))
 
     # Remove *italic*
     def replit(g):

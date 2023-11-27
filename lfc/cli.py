@@ -31,7 +31,9 @@ from ._vendor.argread.clitext import compile_rst
 
 
 # Help message
-HELP_LFC = r"""File Control control (lfc)
+HELP_LFC = r"""
+``lfc``: Large File Control
+=============================
 
 Track and share large and/or binary files in git repositories.
 
