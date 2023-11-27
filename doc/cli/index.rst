@@ -13,9 +13,16 @@ commands largely mirror those of `git <https://git-scm.com>`_.
     :maxdepth: 1
 
     lfc-init
+    lfc-remote
     lfc-add
+    lfc-pull
+    lfc-push
     lfc-checkout
     lfc-config
+    lfc-show
     lfc-ls-files
+    lfc-set-mode
     lfc-auto-pull
     lfc-auto-push
+    lfc-install-hooks
+    lfc-replace-dvc

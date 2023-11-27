@@ -122,6 +122,10 @@ hooks are installed.
 :Options:
     -h, --help
         Display this help message and exit
+
+    -r, --remote REMOTE
+        Use remote cache named *REMOTE* (w/o ``-r`` flag, use default
+        remote)
 """
 HELP_AUTOPULL
 
@@ -145,6 +149,10 @@ hooks are installed.
 :Options:
     -h, --help
         Display this help message and exit
+
+    -r, --remote REMOTE
+        Use remote cache named *REMOTE* (w/o ``-r`` flag, use default
+        remote)
 """
 
 HELP_CHECKOUT = r"""
@@ -231,7 +239,9 @@ And several files:
         Display this help message and exit
 """
 
-HELP_INSTALL_HOOKS = r"""``lfc-install-hooks``: Install LFC git-hooks
+HELP_INSTALL_HOOKS = r"""
+``lfc-install-hooks``: Install LFC git-hooks
+==============================================
 
 This will create two executable files
 
@@ -274,6 +284,284 @@ constratins.
         Display this help message and exit
 """
 
+HELP_PULL = r"""
+``lfc-pull``: Retrieve and checkout one or more large files
+============================================================
+
+This function retrieves (either through remote or local copy) files,
+puts them in the local cache, and then checks out a copy to the WORKING
+repo. This command cannot be called from a bare repo.
+
+The first step is to find all ``.lfc`` files matching the users input.
+Users can specify which files to get by providing a list of file name
+patterns. If the user does not specify any patterns, all files in the
+current working directory or child directories (recursive) are pulled.
+
+Then for each ``.lfc`` file that meets these constraints, it downloads
+the file into the working repo's ``.lfc/cache/`` folder and then copies
+the local cache file to the working repo.
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc pull [PAT1 [PAT2 ...]] [OPTIONS]
+
+:Inputs:
+    * *PAT1*: First pattern for files to list
+    * *PAT2*: Second pattern for files to list
+
+:Options:
+    -h, --help
+        Display this help message and exit
+
+    -r, --remote REMOTE
+        Use remote cache named *REMOTE* (w/o ``-r`` flag, use default
+        remote)
+
+    --mode MODE
+        Only pull files of mode *MODE*: 1 | 2 | {both}
+
+    -1
+        Shortcut for ``--mode 1``
+
+    -2
+        Shortcut for ``--mode 2``
+
+    -f, --force
+        Overwrite uncached working files if they exist
+
+    -q, --quiet
+        Reduce STDOUT during download (no messages for up-to-date files)
+
+:Examples:
+    This will download and checkout the file ``myfile.dat`` if the file
+    ``myfile.dat.lfc`` exists:
+
+        .. code-block:: console
+
+            $ lfc pull myfile.dat
+
+    Note that
+
+        .. code-block:: console
+
+            $ lfc pull myfile.dat.lfc
+
+    is equivalent. Suppose the hash for this file is ``'a4b3f7'``. Then
+    it will look for the file ``a4/b3f7`` on the remote cache, copy it
+    to the local cache, and then copy that file to ``myfile.dat`` in the
+    current working directory.
+
+    This will download and check out all files starting with ``a`` or
+    ``b`` for which an ``.lfc`` file exists:
+
+        .. code-block:: console
+
+            $ lfc pull "a*.lfc" "b*.lfc"
+
+    Suppose the current folder has these files:
+
+        a1.dat
+        a1.dat.lfc
+        a2.dat
+        a3.dat.lfc
+
+    Then the above command would act on the files ``a1.dat`` and
+    ``a3.dat``. ``a2.dat`` is not processed because there is no large
+    file metadata file.
+"""
+
+HELP_PUSH = r"""
+``lfc-push``: Push one or more large files to remote cache
+============================================================
+
+This sends files from a WORKING repo to a remote cache. It copies files
+from the local cache to a remote cache, so if large files are not cached
+(using ``lfc add``), they cannot be pushed.
+
+The first step is to find all ``.lfc`` files matching the users input.
+Users can specify which files to get by providing a list of file name
+patterns. If the user does not specify any patterns, all files in the
+current working directory or child directories (recursive) are pulled.
+
+Then for each ``.lfc`` file that meets these constraints, it reads that
+file to find the hash. It then checks the working repo's cache,
+``.lfc/cache/`` for that file. If it's present, it copies it to the
+remote cache.
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc push [PAT1 [PAT2 ...]] [OPTIONS]
+
+:Inputs:
+    * *PAT1*: First pattern for files to list
+    * *PAT2*: Second pattern for files to list
+
+:Options:
+    -h, --help
+        Display this help message and exit
+
+    -r, --remote REMOTE
+        Use remote cache named *REMOTE* (w/o ``-r`` flag, use default
+        remote)
+
+    --mode MODE
+        Only push files of mode *MODE*: 1 | 2 | {both}
+
+    -1
+        Shortcut for ``--mode 1``
+
+    -2
+        Shortcut for ``--mode 2``
+
+    -q, --quiet
+        Reduce STDOUT during download (no messages for up-to-date files)
+
+:Examples:
+    This will push the files ``myfile.dat`` and ``otherfile.dat`` if the
+    files ``myfile.dat.lfc`` and ``otherfile.dat.lfc`` exist and are
+    present in the local cache:
+
+        .. code-block:: console
+
+            $ lfc push myfile.dat otherfile.dat
+
+    Note that
+
+        .. code-block:: console
+
+            $ lfc push myfile.dat.lfc otherfile.dat.lfc
+
+    is equivalent. Suppose the hash for this file is ``'a4b3f7'``. Then
+    it will look for the file ``a4/b3f7`` in the local cache  and then
+    copy it to the remote cache with the same file name.
+
+    This will push all files starting with ``a`` with mode=2 in the
+    current folder or any child thereof
+
+        .. code-block:: console
+
+            $ lfc push "a*.lfc" -2
+"""
+
+HELP_REMOTE = r"""
+``lfc-remote``: Show or set URL to an LFC remote cache
+========================================================
+
+Define the URL for a remote or list all current remotes.
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc remote CMDNAME [REMOTENAME URL] [OPTIONS]
+
+:Inputs:
+    * *CMDNAME*: name of sub-command: ``list`` | ``add``
+    * *REMOTENAME*: name of remote for which to set *URL*
+    * *URL*: SSH or local path to remote cache
+
+:Options:
+    -h, --help
+        Display this help message and exit
+
+    -d, --default
+        Set *REMOTENAME* as the default LFC remote
+"""
+
+HELP_REPLACE_DVC = r"""
+``lfc-replace-dvc``: Replace any DVC settings and file names
+===============================================================
+
+Although LFC can work in an existing DVC repo, using ``lfc-add`` will
+break DVC's ability to function. It is usually preferable to make a
+repo where you intend to use LFC use the ``.lfc`` file extension instead
+of ``.dvc``.  This command removes some DVC artifacts and rename others.
+
+This will rename some files and folders:
+
+    * ``.dvc/`` -> ``.lfc/``
+    * ``*.dvc`` -> ``*.lfc``
+
+It will also delete some JSON files used by DVC if present.
+
+The function is safe to call multiple times if DVC has been
+partially replaced. If there are no DVC artifacts, this function
+will take no action.
+
+It does **not** recompute hashes. If any existing MD-5 hashes are
+present, LFC will continue to use them, but updating the file
+(using ``lfc add``) will still use a SHA-256 hash.
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc replace-dvc [OPTIONS]
+
+:Options:
+    -h, --help
+        Display this help message and exit
+"""
+
+HELP_SET_MODE = r"""
+``lfc-set-mode``: Set the mode of one or more LFC files
+=========================================================
+
+This file can change the mode of one or more large files that have
+already been added (and therefore a ``.lfc`` file exists). You can
+set the mode to either ``1`` or ``2``:
+
+* Mode-1 files are auto-pushed and -pulled with git pushes and pulls
+* Mode-2 files are explicitly on-demand
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc set-mode [PAT1 [PAT2 ...]] [OPTIONS]
+
+:Inputs:
+    * *PAT1*: First pattern for files to list
+    * *PAT2*: Second pattern for files to list
+
+:Options:
+    -h, --help
+        Display this help message and exit
+
+    --mode MODE
+        Set all matching files to mode *MODE*: {1} | 2
+
+    -1
+        Shortcut for ``--mode 1`` or ``mode=1``
+
+    -2
+        Shortcut for ``--mode 2`` or ``mode=2``
+"""
+
+HELP_SHOW = r"""
+``lfc-show``: Print contents of a large file to STDOUT
+=========================================================
+
+Print contents of a large file to STDOUT, even in a bare repo. This
+function does not decode the bytes so that binary files can be piped
+from bare repos through STDOUT.
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc show FNAME [OPTIONS]
+
+:Inputs:
+    * *FNAME*: name of large file (including ``.lfc``) to show
+
+:Options:
+    -h, --help
+        Display this help message and exit
+
+    --ref REF
+        Use specified git ref, for example commit hash or branch name;
+        default is ``HEAD``
+"""
+
 
 # Dictionary of help commands
 HELP_DICT = {
@@ -285,6 +573,12 @@ HELP_DICT = {
     "init": HELP_INIT,
     "install-hooks": HELP_INSTALL_HOOKS,
     "ls-files": HELP_LS_FILES,
+    "pull": HELP_PULL,
+    "push": HELP_PUSH,
+    "remote": HELP_REMOTE,
+    "replace-dvc": HELP_REPLACE_DVC,
+    "set-mode": HELP_SET_MODE,
+    "show": HELP_SHOW,
 }
 
 
@@ -298,6 +592,7 @@ class LFCArgParser(ArgReader):
         "d": "default",
         "h": "help",
         "q": "quiet",
+        "r": "remote",
     }
 
     # Options that never take a value
