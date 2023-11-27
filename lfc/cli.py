@@ -182,6 +182,36 @@ based on the hash in the ``.lfc`` file.
         Overwrite existing large file even if uncached
 """
 
+HELP_CLONE = r"""
+``lfc-clone``: Clone a repo (using git) and pull all mode-2 LFC files
+======================================================================
+
+This function is equivalent to calling ``git clone`` but with two
+additional actions after the git clone operation is completed:
+
+1. Install hooks (see ``lfc install-hooks``)
+2. Pull most recent version of all mode-2 files (``lfc auto-pull``)
+
+It is equivalent to a normal git clone followed by those two commands.
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc clone IN_REPO [OUT_REPO] [OPTIONS]
+
+:Inputs:
+    * *IN_REPO*: URL to repo to fork or clone
+    * *OUT_REPO*: Name of new repo; default is base name of *IN_REPO*,
+      with ``.git`` appended if cloning to a bare repo
+
+:Options:
+    -h, --help
+        Display this help message and exit
+
+    --bare
+        The new copy of the repo will be bare (no working files)
+"""
+
 HELP_CONFIG = r"""
 ``lfc-config``: View or set LFC config variables
 ==================================================================
@@ -569,6 +599,7 @@ HELP_DICT = {
     "auto-pull": HELP_AUTOPULL,
     "auto-push": HELP_AUTOPUSH,
     "checkout": HELP_CHECKOUT,
+    "clone": HELP_CLONE,
     "config": HELP_CONFIG,
     "init": HELP_INIT,
     "install-hooks": HELP_INSTALL_HOOKS,

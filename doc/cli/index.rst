@@ -22,6 +22,7 @@ commands largely mirror those of `git <https://git-scm.com>`_.
     lfc-show
     lfc-ls-files
     lfc-set-mode
+    lfc-clone
     lfc-auto-pull
     lfc-auto-push
     lfc-install-hooks

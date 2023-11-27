@@ -32,7 +32,7 @@ from ._vendor.gitutils._vendor import shellutils
 
 
 def lfc_clone(*a, **kw) -> int:
-    r"""Clone a repo (using git) and pull all mode=-2 LFC files
+    r"""Clone a repo (using git) and pull all mode-2 LFC files
 
     :Call:
         >>> ierr = lfc_clone(in_repo, bare=False)
