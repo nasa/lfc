@@ -746,7 +746,11 @@ class LFCRepo(GitRepo):
         # Check for existing file that's not up-to-date
         if os.path.isfile(fname):
             # Calculate hash of existing file
-            hash1 = self.genr8_hash(fname)
+            try:
+                hash1 = self.genr8_hash(fname)
+            except MemoryError:
+                # Too big to read; assume up-to-date for simplicity
+                return
             # Check if it's the same hash
             up_to_date = (hash1 == fhash)
             # Get path to cached version of existing file
