@@ -748,7 +748,7 @@ class LFCRepo(GitRepo):
             # Calculate hash of existing file
             try:
                 hash1 = self.genr8_hash(fname)
-            except MemoryError:
+            except MemoryError:  # pragma no cover
                 # Too big to read; assume up-to-date for simplicity
                 return
             # Check if it's the same hash
@@ -1061,7 +1061,11 @@ class LFCRepo(GitRepo):
         if not self._check_cache(lfcinfo):
             return False
         # Gemerate hash
-        hash1 = self.genr8_hash(fname)
+        try:
+            hash1 = self.genr8_hash(fname)
+        except MemoryError:  # pragma no cover
+            # File is too large
+            return True
         # Hahs from info file
         hashinfo = lfcinfo.get("sha256", lfcinfo.get("md5"))
         # Check if file is the same
