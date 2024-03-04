@@ -971,7 +971,6 @@ def lfc_remote(*a, **kw):
         print("Options are: " + " | ".join(list(CMD_REMOTE_DICT.keys())))
         return IERR_CMD
     # Run function
-    breakpoint()
     func(repo, *a[1:], **kw)
 
 
@@ -1136,6 +1135,22 @@ def main() -> int:
 
 # Get command-line args, filtering out weird ``winpty`` fixes
 def _get_argv() -> list:
+    r"""Get CLI args, but undo any ``winpty`` "fixes"
+
+    This will replace
+
+    ``pfe;C:\Users\...\nobackup\``
+
+    with
+
+    ``pfe:/nobackup/``
+
+    :Call:
+        >>> argv = _get_argv()
+    :Outputs:
+        *argv*: :class:`list`\ [:class:`str`]
+            List of filtered command-line arguments
+    """
     # Initialize output
     argv = []
     # Loop through command-line args
