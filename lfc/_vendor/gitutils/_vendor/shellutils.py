@@ -1239,6 +1239,29 @@ class SSH(SSHBase):
             raise ShellutilsFileNotFoundError(
                 f'No file "{fname}" {self._genr8_hostmsg()}')
 
+    def getmtime(self, fname: str) -> int:
+        r"""Get modification time of remote file
+
+        :Call:
+            >>> mtime = ssh.getmtime(fname)
+        :Inputs:
+            *ssh*: :class:`SSH`
+                Persistent SSH subprocess
+            *fname*: :class:`str`
+                Name of file on remote host
+        :Outputs:
+            *fsize*: :class:`int`
+                Size of file in bytes
+        :Versions:
+            * 2024-04-23 ``@ddalle``: v1.0
+        """
+        # Validate file name
+        self.assert_isfile(fname)
+        # Run ``stat``
+        self.run('stat --printf "%%Y\n" "%s"' % fname)
+        # Get STDOUT
+        return int(self.wait_stdout().strip())
+
     def getsize(self, fname: str) -> int:
         r"""Get size of remote file
 

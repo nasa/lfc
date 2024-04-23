@@ -214,6 +214,44 @@ def test_repo06():
     assert os.getcwd() == cwd
 
 
+# Push/pull
+@testutils.run_sandbox(__file__)
+def test_repo07():
+    # Create two repos
+    for name in ("testdir", "testdar"):
+        os.mkdir(name)
+        os.chdir(name)
+        call(["git", "init"])
+        # Add remote
+        call(["git", "remote", "add", "hub", "../testdir.git"])
+        # Leave
+        os.chdir("..")
+    # Now clone one to a bare repo
+    call(["git", "clone", "--bare", "testdir"])
+    assert os.path.isdir("testdir.git")
+    # Go back to repo
+    os.chdir("testdir")
+    # Create a file
+    with open("testfile", 'w') as fp:
+        fp.write("This file is not empty.\n")
+    # Instantiate repo
+    repo = GitRepo()
+    # Add the file
+    repo.add("testfile")
+    repo.commit("Test commit")
+    # Push
+    repo.push("hub")
+    # Now go to the other repo
+    os.chdir("..")
+    os.chdir("testdar")
+    # Should be no test file
+    assert not os.path.isfile("testfile")
+    # Pull
+    repo.pull("hub")
+    # Now there should be a test file
+    assert os.path.isfile("testfile")
+
+
 # Tests run in full repo
 def test_fullrepo01():
     # Instantiate repo

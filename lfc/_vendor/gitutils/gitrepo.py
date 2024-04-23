@@ -474,6 +474,41 @@ class GitRepo(object):
         # Run command
         self.check_call(cmdi)
 
+   # --- Push/pull ---
+    def pull(self, remote: str, ref="HEAD"):
+        r"""Pull from a remote repo
+
+        This function does not reproduce the full functionality of the
+        original ``git-pull`` command
+
+        :Call:
+            >>> repo.pull(remote, ref="HEAD")
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *ref*: {``"HEAD"``} | :class:`str`
+                Git reference, usually branch name
+        """
+        # Perform pull
+        self.check_call(["git", "pull", remote, ref])
+
+    def push(self, remote: str, ref="HEAD"):
+        r"""Push to a remote repo
+
+        This function does not reproduce the full functionality of the
+        original ``git-push`` command
+
+        :Call:
+            >>> repo.push(remote, ref="HEAD")
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *ref*: {``"HEAD"``} | :class:`str`
+                Git reference, usually branch name
+        """
+        # Perform pull
+        self.check_call(["git", "push", remote, ref])
+
    # --- Add ---
     def add(self, *fnames):
         r"""Add a file, either new or modified

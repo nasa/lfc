@@ -58,6 +58,9 @@ def test_shell01():
     # Get size of a file
     fsize = shell.getsize(TEST_FILE)
     assert fsize < 100
+    # Get mod time of test file
+    mtime = shell.getmtime(TEST_FILE)
+    assert mtime >= os.path.getmtime(os.path.join("..", TEST_FILE))
     # Go up a folder
     shell.chdir("..")
     # Try to create a new file that's already a folder
