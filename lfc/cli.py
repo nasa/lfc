@@ -20,6 +20,8 @@ programmers as well.
 
 # Standard library
 import os
+import re
+import shutil
 import sys
 
 # Local imports
@@ -28,6 +30,14 @@ from .lfcerror import GitutilsError
 from .lfcrepo import LFCRepo
 from ._vendor.argread import ArgReader
 from ._vendor.argread.clitext import compile_rst
+
+
+# Regular expression for "pfe;" or other messed-up remote paths
+REGEX_WINREMOTE = re.compile("[A-Za-z][A-Za-z0-9.-]*;")
+# Base path to bash executable
+BASH_EXEC = shutil.which("bash")
+# Root to WINPTY OS base (on Windows when using git-bash.exe)
+WPTY_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(BASH_EXEC)))
 
 
 # Help message
@@ -1088,7 +1098,7 @@ def main() -> int:
     # Create parser
     parser = LFCArgParser()
     # Parse args
-    a, kw = parser.parse()
+    a, kw = parser.parse(_get_argv())
     kw.pop("__replaced__", None)
     # Check for no commands
     if len(a) == 0:
@@ -1121,3 +1131,46 @@ def main() -> int:
     ierr = IERR_OK if ierr is None else ierr
     # Normal exit
     return ierr
+
+
+# Get command-line args, filtering out weird ``winpty`` fixes
+def _get_argv() -> list:
+    r"""Get CLI args, but undo any ``winpty`` "fixes"
+
+    This will replace
+
+    ``pfe;C:\Users\...\nobackup\``
+
+    with
+
+    ``pfe:/nobackup/``
+
+    :Call:
+        >>> argv = _get_argv()
+    :Outputs:
+        *argv*: :class:`list`\ [:class:`str`]
+            List of filtered command-line arguments
+    """
+    # Initialize output
+    argv = []
+    # Loop through command-line args
+    for argi in sys.argv:
+        # Check for unusual remote path start
+        if REGEX_WINREMOTE.match(argi):
+            # Split full path by semicolon
+            host, path = argi.split(';', 1)
+            # Check for weird prefix of git-bash path
+            if path.startswith(WPTY_ROOT):
+                # Strip root
+                path = path[len(WPTY_ROOT):]
+            # Replace \ with / if necessary
+            path = path.replace(os.sep, '/')
+            # Rejoint full path
+            argj = f"{host}:{path}"
+        else:
+            # Use arg as is
+            argj = argi
+        # Append
+        argv.append(argj)
+    # Output
+    return argv
