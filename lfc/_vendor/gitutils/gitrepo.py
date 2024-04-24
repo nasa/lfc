@@ -898,7 +898,7 @@ class GitRepo(object):
         # Output
         return stdout
 
-    def check_call(self, cmd, codes=None, cwd=None) -> int:
+    def check_call(self, cmd, codes=None, cwd=None, **kw) -> int:
         r"""Run a command and check return code
 
         :Call:
@@ -958,11 +958,38 @@ class GitRepo(object):
                 Return code from subprocess
         :Versions:
             * 2023-10-25 ``@ddalle``: v1.0
+            * 2024-04-23 ``@ddalle``: v2.0; use ``_call()``
+        """
+        # Run command and return only return code
+        return self._call(cmd, cwd, **kw)[0]
+
+    def _call(self, cmd, cwd=None, **kw) -> int:
+        r"""Run a command with generic options
+
+        :Call:
+            >>> ierr = repo.call(cmd, cwd=None, **kw)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *cmd*: :class:`list`\ [:class:`str`]
+                Command to run in list form
+            *cwd*: {``None``} | ``True`` | :class:`str`
+                Location in which to run subprocess; ``None`` is current
+                working directory, and ``True`` is *repo.gitdir*
+            *stdout*: {``None``} | ``subprocess.PIPE`` | :class:`file`
+                Option to supress or pipe STDOUT
+            *stderr*: {``None``} | ``subprocess.PIPE`` | :class:`file`
+                Option to supress or pipe STDERR
+        :Outputs:
+            *ierr*: :class:`int`
+                Return code from subprocess
+        :Versions:
+            * 2024-04-23 ``@ddalle``: v1.0
         """
         # Parse special cases of *cwd*
         cwd = self._parse_cwd(cwd)
         # Run the command as requested
-        return shellutils.call(cmd, cwd=cwd, **kw)
+        return shellutils._call(cmd, cwd=cwd, **kw)
 
     def call_oe(self, cmd, codes=None, cwd=None):
         r"""Run a command, capturing STDOUT and checking return code
