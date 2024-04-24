@@ -961,7 +961,7 @@ class GitRepo(object):
             * 2024-04-23 ``@ddalle``: v2.0; use ``_call()``
         """
         # Run command and return only return code
-        return self._call(cmd, cwd, **kw)[0]
+        return self._call(cmd, cwd, **kw)[2]
 
     def _call(self, cmd, cwd=None, **kw) -> int:
         r"""Run a command with generic options
