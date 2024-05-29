@@ -756,7 +756,7 @@ class LFCRepo(GitRepo):
             # Get path to cached version of existing file
             fhash1 = os.path.join(cachedir, hash1[:2], hash1[2:])
             # Check if file is present
-            if not os.path.isfile(fhash1):
+            if not os.path.isfile(fhash1) and not force:
                 # Truncate file name
                 f1 = self._trunc8_fname(fname, 42)
                 # Raise exceptoin
