@@ -725,7 +725,8 @@ class LFCRepo(GitRepo):
         fname = self.genr8_lfc_ofilename(fname)
         # Get info
         lfcinfo = self.read_lfc_file(fname)
-        # Unpack MD5 hash
+        # Unpack hash from .lfc hook
+        fhash_sha256 = lfcinfo.get("sha256")
         fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
         # Get path to cache
         cachedir = self.get_cachedir()
@@ -736,8 +737,8 @@ class LFCRepo(GitRepo):
             # Truncate long file name
             f1 = self._trunc8_fname(fname, 32)
             # Raise exception
-            raise LFCCheckoutError(
-                f"Can't checkout '{f1}'; not in cache")
+            print(f"Can't checkout '{f1}'; not in cache")
+            return
         # Check status
         up_to_date = self._lfc_status(fname)
         # Exit if file is up-to-date
@@ -749,10 +750,14 @@ class LFCRepo(GitRepo):
             try:
                 hash1 = self.genr8_hash(fname)
             except MemoryError:  # pragma no cover
-                # Too big to read; assume up-to-date for simplicity
+                # Too big to read;- assume up-to-date for simplicity
                 return
             # Check if it's the same hash
-            up_to_date = (hash1 == fhash)
+            # Don't bother if hash is not SHA-256
+            up_to_date = (fhash_sha256 is None) or (hash1 == fhash)
+            # Exit if up-to-date
+            if up_to_date:
+                return
             # Get path to cached version of existing file
             fhash1 = os.path.join(cachedir, hash1[:2], hash1[2:])
             # Check if file is present
