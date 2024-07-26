@@ -1,17 +1,9 @@
-
-``lfc``: Large File Control for git repositories
-===================================================
-
-
-
-
-
-**Notices**
+Notices:
 
 Copyright © 2024 United States Government as represented by the Administrator
 of the National Aeronautics and Space Administration. All Rights Reserved.
 
-**Disclaimers**
+Disclaimers
 
 No Warranty: THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF
 ANY KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT LIMITED
@@ -36,4 +28,3 @@ UNITED STATES GOVERNMENT, ITS CONTRACTORS AND SUBCONTRACTORS, AS WELL AS ANY
 PRIOR RECIPIENT, TO THE EXTENT PERMITTED BY LAW. RECIPIENT'S SOLE REMEDY FOR
 ANY SUCH MATTER SHALL BE THE IMMEDIATE, UNILATERAL TERMINATION OF THIS
 AGREEMENT.
-
