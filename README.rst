@@ -1,9 +1,90 @@
 
-``lfc``: Large File Control for git repositories
-===================================================
+=================================================
+``lfc``: Large File Control for git repos
+=================================================
 
+``lfc``, which stands for "Large File Control," is an add-on for 
+`git <https://git-scm.com/>`_ that provides a method of tracking large files in
+git repositories. It is inspired by `dvc <https://dvc.org>`_ but is simpler and
+has a different feature set.
 
+Using ``lfc``
+--------------
+Using ``lfc`` is relatively simple for anyone who's already familiar with git.
+For some of the main ``git`` commands, there is a similar ``lfc`` command.
 
+1. To start using ``lfc`` in an existing ``git`` repo, just use
+
+    .. code-block:: console
+
+        $ lfc init
+
+   You will also need to run
+
+    .. code-block:: console
+
+        $ lfc remote add NAME_OF_REMOTE PATH_TO_REMOTE
+
+   These commands work very similar to ``git init`` and ``git remote add``.
+
+2. For any file the user (manually) declares "large", use ``lfc add`` instead
+   of ``git add``.
+
+    .. code-block:: console
+
+        $ lfc add NAME_OF_FILE
+
+   This will create (or update, if appropriate) a file ``{NAME_OF_FILE}.lfc``
+   that has identifying information about the original file. Then metadata
+   file, with the ``.lfc`` extension, is then tracked directly by ``git``.
+
+3. To share the file(s), use ``lfc push``. Unlike ``git push``, LFC doesn't
+   push commits but rather individual files. If you call ``lfc push`` without
+   any additional arguments, it will share all the "large" files that are
+   within the current folder (including subfolders).
+
+4. To retrieve large files, use ``lfc pull``. Like the ``push`` command, this
+   operates on inidividual files but is possible to run from the top-level
+   folder in order to get the current version of all large files.
+
+Motivation
+------------
+The way it works is that users declare individual files "large," which means
+that when users clone, pull, or fetch from a repo, those files are not
+automatically downloaded but instead can be retrieved on-demand. This has two
+main advantages:
+
+    * you can clone a repo with large files quickly, but without the large
+      files (for example to work on an input file); and
+    * in cases where the large file(s) is (are) needed, you only need the most
+      recent version instead of the whole history of that file.
+
+Reasons to use ``lfc``
+----------------------
+In general, LFC is for any project that uses git but also generates large files
+or even small files that happen to be binary. Here are some specific example
+use cases where LFC might be useful.
+
+    *   You're working in computational fluid dynamics (CFD) that requires very
+        large inputs and produces even larger outputs, and you'd like to make
+        the whole process reproducible without resorting to *ad hoc* scripts.
+
+    *   You're a 21st-century developer using modern programming tools and git
+        version control, but your colleagues keep sending you Word and Excel
+        files that are the inputs to your process. You can use LFC to track
+        those documents in a traceable and reliable way.
+
+    *   You have a process that generates binary output files and you'd like to
+        keep track of all the different versions of those files without having
+        to store all of them locally.
+
+    *   You have a repo that generates some binary files (which may or may not
+        be "large"), for example a picture, every day. You'd like users to be
+        able to clone the repo that makes and tracks those pictures but not
+        have to download the entire picture-of-the-day archive when they clone
+        the repo.
+
+    *   And many others.
 
 
 **Notices**

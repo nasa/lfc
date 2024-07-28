@@ -35,7 +35,7 @@ use cases where LFC might be useful.
         keep track of all the different versions of those files without having
         to store all of them locally.
 
-    *   You have a repo that generates some binary file (which may or may not
+    *   You have a repo that generates some binary files (which may or may not
         be "large"), for example a picture, every day. You'd like users to be
         able to clone the repo that makes and tracks those pictures but not
         have to download the entire picture-of-the-day archive when they clone
