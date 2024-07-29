@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 
 # Local software hub
-hub = "git+ssh://pfe/nobackupp16/ddalle/cape/hub/src/"
+hub = "git+ssh://pfe/nobackupnfs1/ddalle/cape/hub/src/"
 
 # List of packages
 pkgs = find_packages()
