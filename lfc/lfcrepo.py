@@ -766,7 +766,7 @@ class LFCRepo(GitRepo):
                 f1 = self._trunc8_fname(fname, 42)
                 # Raise exceptoin
                 raise LFCCheckoutError(
-                    f"Can't checkout '{f1}'; exsiting uncached file")
+                    f"Can't checkout '{f1}'; existing uncached file")
             # Remove the file
             os.remove(fname)
         # Copy file
