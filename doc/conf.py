@@ -34,13 +34,13 @@ for _f in [fgit]:
 # -- Project information -----------------------------------------------------
 
 project = repo
-copyright = u'Ames SLS CFD Team'
-author = u'Ames SLS CFD Team'
+copyright = u'National Aeronautics and Space Administration'
+author = u'NASA Ames CAPE Team'
 
 # The short X.Y version
-version = u''
+version = "1.0"
 # The full version, including alpha/beta/rc tags
-release = u''
+release = "1.0.0"
 
 
 # -- General configuration ---------------------------------------------------
