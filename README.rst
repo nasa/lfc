@@ -8,6 +8,11 @@
 git repositories. It is inspired by `dvc <https://dvc.org>`_ but is simpler and
 has a different feature set.
 
+You can find the detailed documentation at
+
+https://nasa.github.io/lfc-doc
+
+
 Using ``lfc``
 --------------
 Using ``lfc`` is relatively simple for anyone who's already familiar with git.
