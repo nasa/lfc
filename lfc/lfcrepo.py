@@ -19,6 +19,7 @@ import socket
 import sys
 import time
 from configparser import ConfigParser
+from typing import Optional
 
 # Third-party
 import yaml
@@ -816,8 +817,8 @@ class LFCRepo(GitRepo):
             url = self.get_lfc_remote_url(remote)
             # Split parts
             host, path = shellutils.identify_host(url)
-            # Check if SSH
-            if host is None or _check_host(host):
+            # Check if non-SSH path available
+            if host is None:
                 cachedirs.append(path)
         # Loop through candidates
         for cachedir in cachedirs:
@@ -1510,14 +1511,10 @@ class LFCRepo(GitRepo):
                 Also set *remote* as the default LFC remote
         :Versions:
             * 2022-12-25 ``@ddalle``: v1.0
+            * 2024-09-16 ``@ddalle``: v1.1; offload _get_config_remote
         """
         # Get comfig
-        config = self.make_lfc_config()
-        # Section name
-        section = '\'remote "%s"\'' % remote
-        # Add section if necessary
-        if section not in config.sections():
-            config.add_section(section)
+        config, section = self._get_config_remote(remote)
         # Set URL
         config.set(section, "url", url)
         # Check for default
@@ -1527,7 +1524,29 @@ class LFCRepo(GitRepo):
         # Write
         self.write_lfc_config(config)
 
-    def get_lfc_remote_url(self, remote=None):
+    def set_lfc_remote_hosts(self, remote: str, hosts: list, **kw):
+        r"""Add or set list of host name patterns where remote is local
+
+        :Call:
+            >>> repo.set_lfc_remote_hosts(remote, hosts, **kw)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *remote*: :class:`str`
+                Name of LFC remote
+            *hosts*: :class:`list`\ [:class:`str`]
+                List of hostname regular expressions
+        :Versions:
+            * 2024-09-16 ``@ddalle``: v1.0
+        """
+        # Get comfig
+        config, section = self._get_config_remote(remote)
+        # Set hosts
+        config.set(section, "hosts", ' '.join(hosts))
+        # Write
+        self.write_lfc_config(config)
+
+    def get_lfc_remote_url(self, remote: Optional[str] = None):
         r"""Get URL for a large file client remote
 
         :Call:
@@ -1543,17 +1562,12 @@ class LFCRepo(GitRepo):
         :Versions:
             * 2022-12-22 ``@ddalle``: v1.0
             * 2023-03-17 ``@ddalle``: v1.1; remote -> local *url* check
+            * 2024-09-16 ``@ddalle``: v1.2; add local hosts
         """
         # Resolve default
         remote = self.resolve_lfc_remote_name(remote)
         # Read settings
-        config = self.make_lfc_config()
-        # Section name
-        section = '\'remote "%s"\'' % remote
-        # Test if defined
-        if section not in config._sections:
-            raise GitutilsKeyError(
-                "No settings for LFC remote '%s'" % remote)
+        config, section = self._get_config_remote(remote)
         # Get path
         url = config._sections[section].get("url")
         # Ensure it worked
@@ -1569,13 +1583,46 @@ class LFCRepo(GitRepo):
             path = os.path.join(self.gitdir, path)
             # Get rid of ../..
             url = os.path.realpath(path)
-        elif host is not None and _check_host(host):
-            # Apparent SSH, but host is current machine
-            url = path.replace("/", os.sep)
+        elif host is not None:
+            # Apparent SSH, but check if host is current machine
+            hosts = self.get_lfc_remote_hosts(remote)
+            # Check if any of them match
+            if len(hosts):
+                # Use explicit list
+                q = _check_hosts(hosts)
+            else:
+                # Use host name in URL
+                q = _check_host(host) and os.path.isdir(path)
+            # Don't use SSH in this case
+            if q:
+                url = path.replace("/", os.sep)
         # Output
         return url.rstrip("/")
 
-    def resolve_lfc_remote_name(self, remote=None):
+    def get_lfc_remote_hosts(self, remote: str) -> list:
+        r"""Get list of hosts on which *remote* is local
+
+        :Call:
+            >>> hosts = repo.get_lfc_remote_hosts(remote)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *remote*: :class:`str`
+                Name of remote
+        :Outputs:
+            *hosts*: :class:`list`\ [:class:`str`]
+                List of hostname regular expressions
+        :Versions:
+            * 2024-09-16 ``@ddalle``: v1.0
+        """
+        # Read settings
+        config, section = self._get_config_remote(remote)
+        # Get hosts
+        rawhosts = config._sections[section].get("hosts", "")
+        # Split
+        return rawhosts.split()
+
+    def resolve_lfc_remote_name(self, remote: Optional[str] = None):
         r"""Resolve default LFC remote, if necessary
 
         :Call:
@@ -1719,9 +1766,42 @@ class LFCRepo(GitRepo):
             # Return absolute path
             return os.path.join(self.gitdir, ext, "config")
 
+    def _get_config_remote(self, remote: str):
+        r"""Get/create LFC config section for a given *remote*
+
+        :Call:
+            >>> config, section = repo._get_config_remote(remote)
+        :Outputs:
+            *config*: :class:`ConfigParser`
+                Interace to current configuration
+            *section*: :class:`str`
+                name of section for remote *remote*
+        """
+        # Get comfig
+        config = self.make_lfc_config()
+        # Section name
+        section = '\'remote "%s"\'' % remote
+        # Add section if necessary
+        if section not in config.sections():
+            config.add_section(section)
+        # Return config and section name
+        return config, section
+
 
 def _check_host(host: str) -> bool:
     return socket.gethostname().startswith(host)
+
+
+def _check_hosts(hosts: list) -> bool:
+    # Get current hostname
+    localhost = socket.gethostname()
+    # Loop through hosts
+    for host in hosts:
+        # Check for match
+        if re.fullmatch(host, localhost):
+            return True
+    # No matches
+    return False
 
 
 def _merge_caches(dvccache: str, lfccache: str):
