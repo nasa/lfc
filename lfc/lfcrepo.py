@@ -1524,17 +1524,17 @@ class LFCRepo(GitRepo):
         # Write
         self.write_lfc_config(config)
 
-    def set_lfc_remote_hosts(self, remote: str, hosts: list, **kw):
+    def set_lfc_remote_hosts(self, remote: str, *hosts: str, **kw):
         r"""Add or set list of host name patterns where remote is local
 
         :Call:
-            >>> repo.set_lfc_remote_hosts(remote, hosts, **kw)
+            >>> repo.set_lfc_remote_hosts(remote, *hosts, **kw)
         :Inputs:
             *repo*: :class:`GitRepo`
                 Interface to git repository
             *remote*: :class:`str`
                 Name of LFC remote
-            *hosts*: :class:`list`\ [:class:`str`]
+            *hosts*: :class:`tuple`\ [:class:`str`]
                 List of hostname regular expressions
         :Versions:
             * 2024-09-16 ``@ddalle``: v1.0

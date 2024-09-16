@@ -654,9 +654,12 @@ class LFCArgParser(ArgReader):
 # Commands for ``lfc remote``
 CMD_REMOTE_DICT = {
     "add": LFCRepo.set_lfc_remote,
+    "add-host": LFCRepo.set_lfc_remote_hosts,
+    "add-hosts": LFCRepo.set_lfc_remote_hosts,
     "list": LFCRepo._print_lfc_remotes,
     "ls": LFCRepo._print_lfc_remotes,
     "rm": LFCRepo.rm_lfc_remote,
+    "set-hosts": LFCRepo.set_lfc_remote_hosts,
     "set-url": LFCRepo.set_lfc_remote,
 }
 
