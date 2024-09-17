@@ -732,7 +732,7 @@ class LFCRepo(GitRepo):
         # Get path to cache
         cachedir = self.get_cachedir()
         # Get cache file name
-        fcache = os.path.join(cachedir, fhash[:2], fhash[2:])
+        fcache = self._cachefile(fname)
         # Check if file is present in the cache
         if not os.path.isfile(fcache):
             # Truncate long file name
@@ -758,7 +758,7 @@ class LFCRepo(GitRepo):
             up_to_date = (fhash_sha256 is None) or (hash1 == fhash)
             # Exit if up-to-date
             if up_to_date:
-                return
+                return  # pragma: no cover
             # Get path to cached version of existing file
             fhash1 = os.path.join(cachedir, hash1[:2], hash1[2:])
             # Check if file is present
@@ -772,6 +772,18 @@ class LFCRepo(GitRepo):
             os.remove(fname)
         # Copy file
         shutil.copy(fcache, fname)
+
+    def _cachefile(self, fname: str) -> str:
+        # Strip .lfc if necessary
+        fname = self.genr8_lfc_ofilename(fname)
+        # Get info
+        lfcinfo = self.read_lfc_file(fname)
+        # Unpack hash from .lfc hook
+        fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
+        # Get path to cache
+        cachedir = self.get_cachedir()
+        # Get cache file name
+        return os.path.join(cachedir, fhash[:2], fhash[2:])
 
    # --- LFC show ---
     def lfc_show(self, fname: str, ref=None, **kw):
@@ -1515,6 +1527,9 @@ class LFCRepo(GitRepo):
         """
         # Get comfig
         config, section = self._get_config_remote(remote)
+        # Add section if necessary
+        if section not in config.sections():
+            config.add_section(section)
         # Set URL
         config.set(section, "url", url)
         # Check for default
@@ -1568,11 +1583,11 @@ class LFCRepo(GitRepo):
         remote = self.resolve_lfc_remote_name(remote)
         # Read settings
         config, section = self._get_config_remote(remote)
+        # Check if remote is present
+        if section not in config._sections:
+            raise GitutilsKeyError(f"No settings for LFC remote '{remote}'")
         # Get path
         url = config._sections[section].get("url")
-        # Check if remote is present
-        if url is None:
-            raise GitutilsKeyError(f"No settings for LFC remote '{remote}'")
         # Ensure it worked
         assert_isinstance(url, str, "URL for LFC remote %s" % remote)
         # Split into parts
@@ -1784,9 +1799,6 @@ class LFCRepo(GitRepo):
         config = self.make_lfc_config()
         # Section name
         section = '\'remote "%s"\'' % remote
-        # Add section if necessary
-        if section not in config.sections():
-            config.add_section(section)
         # Return config and section name
         return config, section
 

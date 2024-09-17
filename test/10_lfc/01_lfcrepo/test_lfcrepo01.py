@@ -364,6 +364,16 @@ def test_repo05():
         url_localhost = repo.get_lfc_remote_url("localhost")
         # This should point to local path w/o SSH reference
         assert url_localhost == remotecache
+        # Now add bad "hosts"
+        repo.set_lfc_remote_hosts("localhost", f"{host}a")
+        # Get the URL to this remote
+        url_localhost = repo.get_lfc_remote_url("localhost")
+        assert url_localhost != remotecache
+        # Now add good "hosts"
+        repo.set_lfc_remote_hosts("localhost", f"{host[:-1]}.")
+        # Get the URL to this remote
+        url_localhost = repo.get_lfc_remote_url("localhost")
+        assert url_localhost == remotecache
 
 
 # Test lfc-checkout
@@ -408,6 +418,14 @@ def test_repo06():
     repo._lfc_checkout(fname01)
     # Should have a different hash now (the original one)
     assert repo.genr8_hash(fname01) != hash1
+    fcache01 = repo._cachefile(fname01)
+    # Check out up-to-date file
+    repo._lfc_checkout(fname01)
+    # Remove file
+    os.remove(fname01)
+    os.remove(fcache01)
+    # Try checking it out
+    repo._lfc_checkout(fname01)
 
 
 # Test lfc-set-mode
