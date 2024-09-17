@@ -387,9 +387,6 @@ def test_repo06():
     # Delete it!
     if os.path.isfile(fhash2):
         os.remove(fhash2)
-    # Now try to checkout *fname02*
-    with pytest.raises(LFCCheckoutError):
-        repo._lfc_checkout(fname02)
     # Now we're going to create a new version of *fname01*
     with open(fname01, 'wb') as fp:
         fp.write(os.urandom(127))

@@ -496,12 +496,15 @@ Define the URL for a remote or list all current remotes.
 :Usage:
     .. code-block:: console
 
-        $ lfc remote CMDNAME [REMOTENAME URL] [OPTIONS]
+        $ lfc remote CMDNAME REMOTENAME [*ARGS] [OPTIONS]
+        $ lfc remote add REMOTENAME URL [OPTIONS]
+        $ lfc remote add-host REMOTENAME HOST [HOST2 ...]
 
 :Inputs:
-    * *CMDNAME*: name of sub-command: ``list`` | ``add``
+    * *CMDNAME*: name of sub-command: ``list`` | ``add`` | ``add-host``
     * *REMOTENAME*: name of remote for which to set *URL*
     * *URL*: SSH or local path to remote cache
+    * *HOST*: regular expression for hostnames where *REMOTE* is local
 
 :Options:
     -h, --help
@@ -1159,7 +1162,7 @@ def _get_argv() -> list:
     # Loop through command-line args
     for argi in sys.argv:
         # Check for unusual remote path start
-        if REGEX_WINREMOTE.match(argi):
+        if REGEX_WINREMOTE.match(argi):  # pragma: no cover
             # Split full path by semicolon
             host, path = argi.split(';', 1)
             # Check for weird prefix of git-bash path
@@ -1168,7 +1171,7 @@ def _get_argv() -> list:
                 path = path[len(WPTY_ROOT):]
             # Replace \ with / if necessary
             path = path.replace(os.sep, '/')
-            # Rejoint full path
+            # Rejoin full path
             argj = f"{host}:{path}"
         else:
             # Use arg as is

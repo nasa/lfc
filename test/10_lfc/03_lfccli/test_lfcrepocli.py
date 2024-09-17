@@ -117,6 +117,10 @@ def test_cli02():
     assert stdout == f"{LFC_FILE}.lfc\n"
     # Restore original STDOUT
     sys.stdout = sysstdout
+    # Run -h
+    sys.argv = ["lfc", "ls-files", "-h"]
+    ierr = main()
+    assert ierr == 0
     # Run the help function
     sys.argv = ["lfc", "-h"]
     ierr = main()

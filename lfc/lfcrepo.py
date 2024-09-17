@@ -734,7 +734,7 @@ class LFCRepo(GitRepo):
         # Get cache file name
         fcache = os.path.join(cachedir, fhash[:2], fhash[2:])
         # Check if file is present in the cache
-        if (not force) and (not os.path.isfile(fcache)):
+        if not os.path.isfile(fcache):
             # Truncate long file name
             f1 = self._trunc8_fname(fname, 32)
             # Raise exception
@@ -1570,6 +1570,9 @@ class LFCRepo(GitRepo):
         config, section = self._get_config_remote(remote)
         # Get path
         url = config._sections[section].get("url")
+        # Check if remote is present
+        if url is None:
+            raise GitutilsKeyError(f"No settings for LFC remote '{remote}'")
         # Ensure it worked
         assert_isinstance(url, str, "URL for LFC remote %s" % remote)
         # Split into parts
