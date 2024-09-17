@@ -45,6 +45,7 @@ OTHER_FILES = [
     "rando3.dat",
     "rando4.dat",
     "rando5.dat",
+    "rando6.dat",
 ]
 
 
@@ -503,11 +504,16 @@ def test_repo10():
         os.path.join(repo.gitdir, ".git", "hooks", "pre-push"))
     # File name
     f1 = OTHER_FILES[3]
+    f2 = OTHER_FILES[4]
     # Create another file
     with open(f1, 'wb') as fp:
         fp.write(os.urandom(256))
+    with open(f2, 'wb') as fp:
+        for _ in range(11):
+            fp.write(os.urandom(100*1024*1024))
     # Add it
     repo.lfc_add(f1, mode=2)
+    repo.lfc_add(f2, mode=1)
     # Commit
     repo.commit(f"Add {f1} to test pre-push hook")
     # Try and push it

@@ -11,6 +11,7 @@ and transfer large files tracked with ``lfc``.
 import fnmatch
 import glob
 import hashlib
+import mmap
 import os
 import posixpath
 import re
@@ -46,6 +47,9 @@ REGEX_LFC_REMOTE_SECTION = re.compile('\'remote "(?P<name>\\w+)"\'')
 # Error codes
 IERR_OK = 0
 IERR_FILE_NOT_FOUND = 128
+
+# Cutoff for using memory map
+LARGE_FILE = 1024 ** 3
 
 
 # Create new class
@@ -444,9 +448,18 @@ class LFCRepo(GitRepo):
             f1 = self._trunc8_fname(fname, 28)
             raise GitutilsFileNotFoundError(f"Can't hash '{f1}'; no such file")
         # Read the file and calculate SHA-256 hash
-        obj = hashlib.sha256(open(fname, "rb").read())
-        # Get the MD-5 hash out
-        return obj.hexdigest()
+        if os.path.getsize(fname) > LARGE_FILE:
+            # Initiate hash
+            h = hashlib.sha256()
+            # Open file as memory map
+            with open(fname, 'rb') as fp:
+                with mmap.mmap(fp.fileno(), 0, prot=mmap.ACCESS_READ) as mm:
+                    h.update(mm)
+        else:
+            # Hash entire file
+            h = hashlib.sha256(open(fname, "rb").read())
+        # Get the SHA-256 hash out
+        return h.hexdigest()
 
    # --- LFC push ---
     def lfc_push(self, *fnames, **kw):
