@@ -422,7 +422,7 @@ class LFCRepo(GitRepo):
             print(f"File in cache: {fname8}")
         else:
             # Copy file into cache
-            shutil.copy(fname, fcache)
+            copyfile(fname, fcache)
         # Add the stub
         self._add(flfc)
 
@@ -573,8 +573,8 @@ class LFCRepo(GitRepo):
             f1 = self._trunc8_fname(fname, len(remote) + 14)
             # Status update
             print(f"{f1} [local -> {remote}]")
-            # Copy it
-            shutil.copy(fsrc, ftarg)
+            # Copy it; create file handle in order to respect ACLs
+            copyfile(fsrc, ftarg)
 
    # --- LFC pull ---
     def lfc_pull(self, *fnames, **kw):
@@ -704,7 +704,7 @@ class LFCRepo(GitRepo):
         # Status update
         print(f"{f1} [{remote} -> local]")
         # Copy file
-        shutil.copy(fsrc, ftarg)
+        copyfile(fsrc, ftarg)
         return IERR_OK
 
    # --- LFC checkout --
@@ -784,7 +784,7 @@ class LFCRepo(GitRepo):
             # Remove the file
             os.remove(fname)
         # Copy file
-        shutil.copy(fcache, fname)
+        copyfile(fcache, fname)
 
     def _cachefile(self, fname: str) -> str:
         # Strip .lfc if necessary
@@ -1882,3 +1882,30 @@ def _valid8_mode(mode=1):
     if mode not in (1, 2):
         raise LFCValueError(
             f"Unknown LFC file mode {mode}; accepted values are: 1 | 2")
+
+
+def copyfile(fsrc: str, ftarg: str):
+    r"""Copy files while respecting local access control lists
+
+    This is different from :func:`shutil.copyfile`, which will create
+    *ftarg* with the same permissions as *fsrc*.
+
+    :Call:
+        >>> copyfile(fsrc, ftarg)
+    :Inputs:
+        *fsrc*: :class:`str`
+            Name of file to copy
+        *ftarg*: :class:`str`
+            Name of destination file or folder
+    """
+    # Check if destination is a folder
+    if os.path.isdir(ftarg):
+        # Given folder; use same file name as *fsrc*
+        dest = os.path.join(ftarg, os.path.basename(fsrc))
+    else:
+        # Already a file name
+        dest = ftarg
+    # Copy it; create file handle in order to respect ACLs
+    with open(fsrc, 'rb') as f1:
+        with open(dest, 'wb') as f2:
+            shutil.copyfileobj(f1, f2)
