@@ -798,6 +798,59 @@ class LFCRepo(GitRepo):
         # Get cache file name
         return os.path.join(cachedir, fhash[:2], fhash[2:])
 
+   # --- LFC purge ---
+    def lfc_purge(self, *fnames, **kw):
+        r"""Purge one or more large files from working copy and cache
+
+        :Call:
+            >>> repo.lfc_purge(*fnames, **kw)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *fnames*: :class:`tuple`\ [:class:`str`]
+                Names or wildcard patterns of files
+        :Versions:
+            * 2024-10-12 ``@ddalle``: v1.0
+        """
+        # Get remote
+        remote = kw.get("remote", kw.get("r"))
+        # Select mode to use
+        mode = kw.get("mode")
+        _valid8n_mode(mode)
+        # Verbosity setting
+        quiet = kw.get("quiet", kw.get("q", False))
+        # Expand file list
+        lfcfiles = self.genr8_lfc_glob(*fnames, mode=mode)
+        # Loop through files
+        for flfc in lfcfiles:
+            # Push
+            self._lfc_purge(flfc, remote, quiet)
+
+    def _lfc_purge(self, fname: str):
+        # Strip .lfc if necessary
+        flfc = self.genr8_lfc_filename(fname)
+        fwork = self.genr8_lfc_ofilename(fname)
+        # Get cache file name
+        fcache = self._cachefile(flfc)
+        # Truncate working file if long
+        f1 = self._trunc8_fname(fwork, 26)
+        # Test if workin file exists
+        if os.path.isfile(fwork):
+            # Status update
+            print(f"rm '{f1}'")
+            # Remove the working file
+            os.remove(fwork)
+        # Test if file exists in cache
+        if os.path.isfile(fcache):
+            # Get path to cache
+            cachedir = self.get_cachedir()
+            frel = os.path.relpath(fcache, cachedir)
+            # Status update
+            f2 = self._trunc8_fname(frel, 7)
+            print(f"rm '{f2}' ({f1})")
+            # Remove the file
+            os.remove(fcache)
+
    # --- LFC show ---
     def lfc_show(self, fname: str, ref=None, **kw):
         r"""Show the contents of an LFC file from a local cache

@@ -194,6 +194,30 @@ based on the hash in the ``.lfc`` file.
         Overwrite existing large file even if uncached
 """
 
+HELP_PURGE = r"""
+``lfc-purge``: Remove a large file from working copy and cache
+======================================================================
+
+This function clears large file(s) from a (usually working) repo when
+the user no longer needs them. It deletes both working copies (if
+appropriate) and local cache files.
+
+*The current version does not check if the files have been pushed.*
+
+:Usage:
+    .. code-block:: console
+
+        $ lfc purge FILE1 [FILE2 ...] [OPTIONS]
+
+:Inputs:
+    * *FILE1*: First file name or file name pattern
+    * *FILE2*: Second file name or file name pattern
+
+:Options:
+    -h, --help
+        Display this help message and exit
+"""
+
 HELP_CLONE = r"""
 ``lfc-clone``: Clone a repo (using git) and pull all mode-2 LFC files
 ======================================================================
@@ -916,6 +940,33 @@ def lfc_pull(*a, **kw):
     repo.lfc_pull(*a, **kw)
 
 
+def lfc_purge(*a, **kw):
+    r"""Purge large files from cache and working files
+
+    If no patterns are specified, the target will be all large files
+    that are in the current folder or children thereof.
+
+    :Call:
+        >>> lfc_purge()
+        >>> lfc_purge(pat1, pat2, ..., quiet=True)
+    :Inputs:
+        *pat1*: :class:`str`
+            Name of large file or file name pattern
+        *pat2*: :class:`str`
+            Second file name or file name pattern
+        *mode*: {``None``} | ``1`` | ``2``
+            Optionally only push files of a specified mode
+        *quiet*: {``True``} | ``False``
+            Option to suppress STDOUT for files already up-to-date
+    """
+    # Read the repo
+    repo = LFCRepo()
+    # Check for -2 -> mode=2
+    _parse_mode(kw)
+    # Push it
+    repo.lfc_purge(*a, **kw)
+
+
 def lfc_push(*a, **kw):
     r"""Push one or more large files
 
@@ -1079,6 +1130,7 @@ CMD_DICT = {
     "ls-files": lfc_ls_files,
     "pull": lfc_pull,
     "push": lfc_push,
+    "purge": lfc_purge,
     "remote": lfc_remote,
     "replace-dvc": lfc_replace_dvc,
     "set-mode": lfc_set_mode,
