@@ -645,6 +645,7 @@ HELP_DICT = {
     "ls-files": HELP_LS_FILES,
     "pull": HELP_PULL,
     "push": HELP_PUSH,
+    "purge": HELP_PURGE,
     "remote": HELP_REMOTE,
     "replace-dvc": HELP_REPLACE_DVC,
     "set-mode": HELP_SET_MODE,

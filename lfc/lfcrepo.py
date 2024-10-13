@@ -812,19 +812,15 @@ class LFCRepo(GitRepo):
         :Versions:
             * 2024-10-12 ``@ddalle``: v1.0
         """
-        # Get remote
-        remote = kw.get("remote", kw.get("r"))
         # Select mode to use
         mode = kw.get("mode")
         _valid8n_mode(mode)
-        # Verbosity setting
-        quiet = kw.get("quiet", kw.get("q", False))
         # Expand file list
         lfcfiles = self.genr8_lfc_glob(*fnames, mode=mode)
         # Loop through files
         for flfc in lfcfiles:
             # Push
-            self._lfc_purge(flfc, remote, quiet)
+            self._lfc_purge(flfc)
 
     def _lfc_purge(self, fname: str):
         # Strip .lfc if necessary
