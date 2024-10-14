@@ -216,6 +216,19 @@ appropriate) and local cache files.
 :Options:
     -h, --help
         Display this help message and exit
+
+    -r, --remote REMOTE
+        Use remote cache named *REMOTE* (w/o ``-r`` flag, use default
+        remote)
+
+    --mode MODE
+        Only pull files of mode *MODE*: 1 | 2 | {both}
+
+    -f, --force
+        Overwrite uncached working files if they exist
+
+    -q, --quiet
+        Reduce STDOUT during download (no messages for up-to-date files)
 """
 
 HELP_CLONE = r"""

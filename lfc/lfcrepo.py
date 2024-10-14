@@ -809,6 +809,12 @@ class LFCRepo(GitRepo):
                 Interface to git repository
             *fnames*: :class:`tuple`\ [:class:`str`]
                 Names or wildcard patterns of files
+            *remote*: {``None``} | :class:`str`
+                Name of remote to check
+            *force*: ``True`` | {``False``}
+                Option to purge w/o checking *remote*
+            *quiet*: ``True`` | {``False``}
+                Option to suppress STDOUT status messages
         :Versions:
             * 2024-10-12 ``@ddalle``: v1.0
         """
@@ -822,7 +828,12 @@ class LFCRepo(GitRepo):
             # Push
             self._lfc_purge(flfc)
 
-    def _lfc_purge(self, fname: str):
+    def _lfc_purge(
+            self,
+            fname: str,
+            remote: Optional[str] = None,
+            quiet: bool = False,
+            force: bool = False):
         # Strip .lfc if necessary
         flfc = self.genr8_lfc_filename(fname)
         fwork = self.genr8_lfc_ofilename(fname)
@@ -830,10 +841,22 @@ class LFCRepo(GitRepo):
         fcache = self._cachefile(flfc)
         # Truncate working file if long
         f1 = self._trunc8_fname(fwork, 26)
-        # Test if workin file exists
+        # Check if we should do checks before deleting
+        if not force:
+            # Check if file is present on remote
+            if not self.check_remote_cache(flfc, remote):
+                # Status update
+                if not quiet:
+                    # Resolve remote
+                    remote = self.resolve_lfc_remote_name(remote)
+                    # Print status
+                    print(f"'{f1}' not in remote '{remote}'")
+                return
+        # Test if working file exists
         if os.path.isfile(fwork):
             # Status update
-            print(f"rm '{f1}'")
+            if not quiet:
+                print(f"rm '{f1}'")
             # Remove the working file
             os.remove(fwork)
         # Test if file exists in cache
@@ -842,10 +865,77 @@ class LFCRepo(GitRepo):
             cachedir = self.get_cachedir()
             frel = os.path.relpath(fcache, cachedir)
             # Status update
-            f2 = self._trunc8_fname(frel, 7)
-            print(f"rm '{f2}' ({f1})")
+            if not quiet:
+                f2 = self._trunc8_fname(frel, 7)
+                print(f"rm '{f2}' ({f1})")
             # Remove the file
             os.remove(fcache)
+
+    def check_remote_cache(
+            self,
+            fname: str,
+            remote: Optional[str] = None) -> bool:
+        r"""Check if a file is in a remote's cache
+
+        :Call:
+            >>> is_cached = repo.check_remote_cache(fname, remote)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *fname*: :class:`str`
+                Name of file to check
+            *remote*: {``None``} | :class:`str`
+                Name of large file remote
+        :Outputs:
+            *is_cached*: :class:`bool`
+                Whether *fname* is represented in cache of *remote*
+        """
+        # Add .lfc if necessary
+        flfc = self.genr8_lfc_filename(fname)
+        # Get info
+        lfcinfo = self.read_lfc_file(flfc)
+        # Get hash
+        fhash = lfcinfo.get("sha256", lfcinfo.get("md5", ""))
+        # Check if present
+        return self._check_remote_cache(fhash, remote)
+
+    def _check_remote_cache(
+            self,
+            fhash: str,
+            remote: Optional[str] = None) -> bool:
+        # Resolve remote name
+        remote = self.resolve_lfc_remote_name(remote)
+        # Get remote location
+        fremote = self.get_lfc_remote_url(remote)
+        # Split host name and path
+        host, _ = shellutils.identify_host(fremote)
+        # Check remote/local
+        if host is None:
+            self._check_remote_cache_local(fhash, remote)
+        else:
+            self._lfc_push_ssh(fhash, remote)
+
+    def _check_remote_cache_local(self, fhash: str, remote: str) -> bool:
+        # Get remote location
+        fremote = self.get_lfc_remote_url(remote)
+        # Get path to file
+        fabs = os.path.join(fremote, fhash[:2], fhash[2:])
+        # Check if the file exists
+        return os.path.isfile(fabs)
+
+    def _check_remote_cache_ssh(self, fhash: str, remote: str) -> bool:
+        # Get remote location
+        fremote = self.get_lfc_remote_url(remote)
+        # Get parts of remote
+        _, path = shellutils.identify_host(fremote)
+        # Get portal
+        portal = self.make_lfc_portal(remote)
+        # Ensure correct folder
+        portal.chdir_remote(path)
+        # Get path to cache file relative to base of cache
+        frel = posixpath.join(fhash[:2], fhash[2:])
+        # Check if remote cache contains file
+        return portal.ssh.isfile(frel)
 
    # --- LFC show ---
     def lfc_show(self, fname: str, ref=None, **kw):
@@ -1172,13 +1262,13 @@ class LFCRepo(GitRepo):
         # Check cache
         return self._check_cache(lfcinfo)
 
-    def _check_cache(self, lfcinfo):
+    def _check_cache(self, lfcinfo: dict):
         # Get cache file
         fhashabs = self._get_cachefile(lfcinfo)
         # Check if it's there
         return os.path.isfile(fhashabs)
 
-    def _get_cachefile(self, lfcinfo):
+    def _get_cachefile(self, lfcinfo: dict):
         # Get hash
         fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
         # Assert type
