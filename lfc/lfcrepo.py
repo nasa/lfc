@@ -1210,8 +1210,11 @@ class LFCRepo(GitRepo):
                 - recompute hash instead of comparing mod times
                 - allow input to be original file name (not .lfc)
                 - more generic
+
+            * 2024-10-14 ``@ddalle``: v2.1
+                - add back in mtime check after change to checkout()
         """
-        # Get metadata file names
+        # Get metadata file name
         flfc = self.genr8_lfc_filename(flfc)
         # Check if there's no .lfc file
         if not os.path.isfile(flfc):
@@ -1233,12 +1236,11 @@ class LFCRepo(GitRepo):
         # Check if file is in cache
         if not self._check_cache(lfcinfo):
             return False
-        # Gemerate hash
-        try:
-            hash1 = self.genr8_hash(fname)
-        except MemoryError:  # pragma no cover
-            # File is too large
+        # Check dates
+        if os.path.getmtime(flfc) > os.path.getmtime(fname):
             return True
+        # Gemerate hash
+        hash1 = self.genr8_hash(fname)
         # Hahs from info file
         hashinfo = lfcinfo.get("sha256", lfcinfo.get("md5"))
         # Check if file is the same
