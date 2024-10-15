@@ -221,9 +221,6 @@ appropriate) and local cache files.
         Use remote cache named *REMOTE* (w/o ``-r`` flag, use default
         remote)
 
-    --mode MODE
-        Only pull files of mode *MODE*: 1 | 2 | {both}
-
     -f, --force
         Overwrite uncached working files if they exist
 

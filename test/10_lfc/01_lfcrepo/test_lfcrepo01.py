@@ -19,6 +19,7 @@ from lfc.cli import (
     lfc_init,
     lfc_install_hooks,
     lfc_pull,
+    lfc_purge,
     lfc_push,
     lfc_remote,
     lfc_replace_dvc,
@@ -30,7 +31,8 @@ from lfc.lfcrepo import (
     GitutilsKeyError,
     GitutilsValueError,
     LFCCheckoutError,
-    LFCRepo
+    LFCRepo,
+    copyfile,
 )
 
 
@@ -294,6 +296,11 @@ def test_repo04():
     for j in range(1, 4):
         fj = os.path.join("data", f"f{j}.dat.lfc")
         assert os.path.isfile(fj)
+    # Try to purge a file that hasn't been pushed
+    f1 = os.path.join("data", "f1.dat")
+    repo.lfc_purge(f1)
+    # File should still be there
+    assert os.path.isfile(f1)
     # Push the files
     repo.lfc_push("data")
     # Path to remote cache
@@ -304,6 +311,15 @@ def test_repo04():
         fhash = repo.get_lfc_hash(fj)
         frj = os.path.join(remotecache, fhash[:2], fhash[2:])
         assert os.path.isfile(frj)
+    # Purge the file again
+    lfc_purge(f1)
+    # Now the file should be gone
+    assert not os.path.isfile(f1)
+    # Try copyfile() with targ
+    fl1 = f"{f1}.lfc"
+    copyfile(fl1, '.')
+    assert os.path.isfile(os.path.basename(fl1))
+    os.remove(os.path.basename(fl1))
 
 
 # Tests of basic operations

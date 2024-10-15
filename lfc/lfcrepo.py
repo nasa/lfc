@@ -732,37 +732,38 @@ class LFCRepo(GitRepo):
             # Checkout single file
             self._lfc_checkout(flfc, force=force)
 
-    def _lfc_checkout(self, fname: str, force=False):
+    def _lfc_checkout(self, fname: str, force: bool = False):
         # Only appropriate in working repos
         self.assert_working()
         # Strip .lfc if necessary
-        fname = self.genr8_lfc_ofilename(fname)
+        fwork = self.genr8_lfc_ofilename(fname)
+        flfc = self.genr8_lfc_filename(fname)
         # Get info
-        lfcinfo = self.read_lfc_file(fname)
+        lfcinfo = self.read_lfc_file(flfc)
         # Unpack hash from .lfc hook
         fhash_sha256 = lfcinfo.get("sha256")
         fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
         # Get path to cache
         cachedir = self.get_cachedir()
         # Get cache file name
-        fcache = self._cachefile(fname)
+        fcache = self._cachefile(fwork)
         # Check if file is present in the cache
         if not os.path.isfile(fcache):
             # Truncate long file name
-            f1 = self._trunc8_fname(fname, 32)
+            f1 = self._trunc8_fname(fwork, 32)
             # Raise exception
             print(f"Can't checkout '{f1}'; not in cache")
             return
         # Check status
-        up_to_date = self._lfc_status(fname)
+        up_to_date = self._lfc_status(fwork)
         # Exit if file is up-to-date
         if up_to_date:
             return
         # Check for existing file that's not up-to-date
-        if os.path.isfile(fname):
+        if os.path.isfile(fwork):
             # Calculate hash of existing file
             try:
-                hash1 = self.genr8_hash(fname)
+                hash1 = self.genr8_hash(fwork)
             except MemoryError:  # pragma no cover
                 # Too big to read;- assume up-to-date for simplicity
                 return
@@ -777,14 +778,16 @@ class LFCRepo(GitRepo):
             # Check if file is present
             if not os.path.isfile(fhash1) and not force:
                 # Truncate file name
-                f1 = self._trunc8_fname(fname, 42)
+                f1 = self._trunc8_fname(fwork, 42)
                 # Raise exceptoin
                 raise LFCCheckoutError(
                     f"Can't checkout '{f1}'; existing uncached file")
             # Remove the file
-            os.remove(fname)
+            os.remove(fwork)
         # Copy file
-        copyfile(fcache, fname)
+        copyfile(fcache, fwork)
+        # Make sure working file is older than stub
+        set_older(fwork, flfc)
 
     def _cachefile(self, fname: str) -> str:
         # Strip .lfc if necessary
@@ -911,9 +914,9 @@ class LFCRepo(GitRepo):
         host, _ = shellutils.identify_host(fremote)
         # Check remote/local
         if host is None:
-            self._check_remote_cache_local(fhash, remote)
+            return self._check_remote_cache_local(fhash, remote)
         else:
-            self._lfc_push_ssh(fhash, remote)
+            return self._lfc_push_ssh(fhash, remote)
 
     def _check_remote_cache_local(self, fhash: str, remote: str) -> bool:
         # Get remote location
@@ -2048,3 +2051,22 @@ def copyfile(fsrc: str, ftarg: str):
     with open(fsrc, 'rb') as f1:
         with open(dest, 'wb') as f2:
             shutil.copyfileobj(f1, f2)
+
+
+def set_older(fname: str, newfile: str):
+    r"""Set modification time of *fname* to be older than *newfile*
+
+    :Call:
+        >>> set_older(fname, newfile)
+    :Inputs:
+        *fname*: :class:`str`
+            Name of file to (potentially) modify
+        *newfile*: :class:`str`
+            File to use as maximum modtime for *fname*
+    """
+    # Get mod times
+    m1 = os.path.getmtime(fname)
+    m2 = os.path.getmtime(newfile)
+    # Check if modification needed
+    if m1 >= m2:
+        os.utime(fname, (m2 - 1, m2 - 1))
