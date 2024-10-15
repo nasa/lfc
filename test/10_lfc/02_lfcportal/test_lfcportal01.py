@@ -104,6 +104,8 @@ def test_repo01():
     portal = repo.make_lfc_portal(REMOTE)
     # Push to remote
     repo.lfc_push(fname01, fname02)
+    # Assert that the file has been pushed
+    assert repo.check_remote_cache(fname01)
     # Ensure the files were pushed
     assert portal.ssh.isfile(fhash1)
     assert portal.ssh.isfile(fhash2)

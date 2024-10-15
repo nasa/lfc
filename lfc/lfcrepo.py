@@ -916,7 +916,7 @@ class LFCRepo(GitRepo):
         if host is None:
             return self._check_remote_cache_local(fhash, remote)
         else:
-            return self._lfc_push_ssh(fhash, remote)
+            return self._check_remote_cache_ssh(fhash, remote)
 
     def _check_remote_cache_local(self, fhash: str, remote: str) -> bool:
         # Get remote location
