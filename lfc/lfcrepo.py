@@ -840,18 +840,18 @@ class LFCRepo(GitRepo):
         # Strip .lfc if necessary
         flfc = self.genr8_lfc_filename(fname)
         fwork = self.genr8_lfc_ofilename(fname)
+        # Resolve remote
+        remote = self.resolve_lfc_remote_name(remote)
         # Get cache file name
         fcache = self._cachefile(flfc)
         # Truncate working file if long
-        f1 = self._trunc8_fname(fwork, 26)
+        f1 = self._trunc8_fname(fwork, 20 + len(remote))
         # Check if we should do checks before deleting
         if not force:
             # Check if file is present on remote
             if not self.check_remote_cache(flfc, remote):
                 # Status update
                 if not quiet:
-                    # Resolve remote
-                    remote = self.resolve_lfc_remote_name(remote)
                     # Print status
                     print(f"'{f1}' not in remote '{remote}'")
                 return
@@ -869,7 +869,7 @@ class LFCRepo(GitRepo):
             frel = os.path.relpath(fcache, cachedir)
             # Status update
             if not quiet:
-                f2 = self._trunc8_fname(frel, 7)
+                f2 = f"{frel[:9]}..."
                 print(f"rm '{f2}' ({f1})")
             # Remove the file
             os.remove(fcache)

@@ -27,5 +27,5 @@ setup(
             "git-lfc-clone=lfc.lfcclone:main",
         ]
     },
-    version="1.1.0b1")
+    version="1.1.0b2")
 
