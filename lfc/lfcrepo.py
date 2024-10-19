@@ -824,12 +824,14 @@ class LFCRepo(GitRepo):
         # Select mode to use
         mode = kw.get("mode")
         _valid8n_mode(mode)
+        # Get remote
+        remote = kw.get("remote")
         # Expand file list
         lfcfiles = self.genr8_lfc_glob(*fnames, mode=mode)
         # Loop through files
         for flfc in lfcfiles:
             # Push
-            self._lfc_purge(flfc)
+            self._lfc_purge(flfc, remote)
 
     def _lfc_purge(
             self,
@@ -856,7 +858,7 @@ class LFCRepo(GitRepo):
                     print(f"'{f1}' not in remote '{remote}'")
                 return
         # Test if working file exists
-        if os.path.isfile(fwork):
+        if os.path.isfile(fwork) and self._lfc_status(fwork):
             # Status update
             if not quiet:
                 print(f"rm '{f1}'")
