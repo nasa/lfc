@@ -858,7 +858,7 @@ class LFCRepo(GitRepo):
                     print(f"'{f1}' not in remote '{remote}'")
                 return
         # Test if working file exists
-        if os.path.isfile(fwork) and self._lfc_status(fwork):
+        if os.path.isfile(fwork) and self._lfc_status(fwork, cache=False):
             # Status update
             if not quiet:
                 print(f"rm '{f1}'")
@@ -1193,16 +1193,18 @@ class LFCRepo(GitRepo):
         return fglob
 
    # --- LFC status ---
-    def _lfc_status(self, flfc: str) -> bool:
+    def _lfc_status(self, flfc: str, cache: bool = True) -> bool:
         r"""Check if the LFC status of a large file is up-to-odate
 
         :Call:
-            >>> status = repo._lfc_status(flfc)
+            >>> status = repo._lfc_status(flfc, cache=True)
         :Inputs:
             *repo*: :class:`GitRepo`
                 Interface to git repository
             *flfc*: :class:`str`
                 Name of file
+            *cache*: {``True``} | ``False``
+                Include local cache check in status
         :Outputs:
             *status*: ``True`` | ``False``
                 Whether file is up-to-date
@@ -1215,6 +1217,9 @@ class LFCRepo(GitRepo):
 
             * 2024-10-14 ``@ddalle``: v2.1
                 - add back in mtime check after change to checkout()
+
+            * 2024-10-21 ``@ddalle``: v2.2
+                - add *cache* kwarg
         """
         # Get metadata file name
         flfc = self.genr8_lfc_filename(flfc)
@@ -1223,8 +1228,10 @@ class LFCRepo(GitRepo):
             return False
         # Get info
         lfcinfo = self.read_lfc_file(flfc)
-        # Get file name
-        fname = lfcinfo.get("path")
+        # Get base file name (no folder) of original file
+        fbase = lfcinfo.get("path")
+        # Use same root as *flfc*
+        fname = os.path.join(os.path.dirname(flfc), fbase)
         # Check if file present
         if not os.path.isfile(fname):
             return False
@@ -1236,7 +1243,7 @@ class LFCRepo(GitRepo):
         if finfo.st_size != lfcsize:
             return False
         # Check if file is in cache
-        if not self._check_cache(lfcinfo):
+        if cache and not self._check_cache(lfcinfo):
             return False
         # Check dates
         if os.path.getmtime(flfc) > os.path.getmtime(fname):
