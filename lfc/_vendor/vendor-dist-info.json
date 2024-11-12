@@ -10,9 +10,17 @@
     "argread": {
         "url": "ssh://linux252/nobackup/ddalle/cape/hub/src/argread.git",
         "vcs_info": {
-            "commit_id": "09680b951f17054104143f613b1be802b1ef79d3",
+            "commit_id": "0f935d0ca268ef76f8edfc645343476cbbee2d74",
             "vcs": "git"
         },
-        "version": " 1.3.2"
+        "version": " 2.0.2"
+    },
+    "promptutils": {
+        "url": "ssh://linux252/nobackup/ddalle/cape/hub/src/promptutils.git",
+        "vcs_info": {
+            "commit_id": "ebf96f912c54ba75ce28ecab490792564aa9c71f",
+            "vcs": "git"
+        },
+        "version": " 0.1.0"
     }
 }

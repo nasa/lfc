@@ -107,9 +107,12 @@ following subclass
 # Standard library
 import re
 import sys
+from collections import namedtuple
+from typing import Optional
 
 # Local imports
 from ._vendor.kwparse import (
+    MetaKwargParser,
     KWTypeError,
     KwargParser,
     assert_isinstance
@@ -118,9 +121,16 @@ from ._vendor.kwparse import (
 
 __version__ = "1.3.1"
 
+# Constants
+TAB = '    '
+
 
 # Regular expression for options like "cdfr=1.3"
 REGEX_EQUALKEY = re.compile(r"(\w+)=([^=].*)")
+
+# A name for the ``a, kw`` tuple
+ArgTuple = namedtuple("ArgTuple", ("a", "kw"))
+SubCmdTuple = namedtuple("SubCmdTuple", ("cmdname", "argv"))
 
 
 # Custom error class
@@ -130,8 +140,43 @@ class ArgReadError(Exception):
     pass
 
 
+class ArgReadValueError(ValueError, Exception):
+    pass
+
+
+# Metaclass to combine _optlist and other class attributes
+class MetaArgReader(MetaKwargParser):
+    r"""Metaclass for :class:`ArgReader`
+
+    This metaclass combines attributes w/ bases. For example if creating
+    a new class :class:`Class2` that inherits from :class:`Class1`, this
+    will automatically combine ``Class1._optlist` and
+    ``Class2._optlist`` and save the result as ``Class2._optlist``. This
+    happens behind the scenes so that users do not need to worry about
+    repeating ``_optlist`` entries.
+    """
+
+    #: List of tuple-like class attributes
+    _tuple_attrs = (
+        "_optlist",
+        "_optlist_noval",
+    )
+
+    #: List of dict-like class attributes
+    _dict_attrs = (
+        "_help_opt",
+        "_help_optarg",
+        "_optconverters",
+        "_optmap",
+        "_opttypes",
+        "_optvalmap",
+        "_optvals",
+        "_rawopttypes",
+    )
+
+
 # Argument read class
-class ArgReader(KwargParser):
+class ArgReader(KwargParser, metaclass=MetaArgReader):
     r"""Class to parse command-line interface arguments
 
     :Call:
@@ -141,6 +186,8 @@ class ArgReader(KwargParser):
             Instance of command-line argument parser
     :Attributes:
         * :attr:`argv`
+        * :attr:`argvals`
+        * :attr:`cmdname`
         * :attr:`prog`
         * :attr:`kwargs_sequence`
         * :attr:`kwargs_replaced`
@@ -155,6 +202,8 @@ class ArgReader(KwargParser):
     # List of instance attributes
     __slots__ = (
         "argv",
+        "argvals",
+        "cmdname",
         "prog",
         "kwargs_sequence",
         "kwargs_replaced",
@@ -164,12 +213,24 @@ class ArgReader(KwargParser):
         "param_sequence",
     )
 
+    #: Name of program for which arguments are being parsed
+    _name = "argread"
+
     #: List of options that cannot take a value:
     #: (:class:`tuple` | :class:`set`)\ [:class:`str`]
     _optlist_noval = ()
 
     #: Option to enforce ``_optlist``
     _restrict = False
+
+    #: List of available commands
+    _cmdlist = None
+
+    #: Aliases for command names
+    _cmdmap = {}
+
+    #: Parser classes for sub-commands
+    _cmdparsers = {}
 
     #: Option to interpret multi-char words with a single dash
     #: as single-letter boolean options, e.g.
@@ -188,6 +249,29 @@ class ArgReader(KwargParser):
     #: Base exception class: :class:`Exception`
     exc_cls = ArgReadError
 
+    #: Optional list and sequence of options to show in ``-h`` output
+    #: (default is to use ``_optlist``)
+    _help_optlist = None
+
+    #: Optional sequence of arguments
+    _help_arglist = None
+
+    #: Description of each option, for creation of automatic "-h" output
+    _help_opt = {}
+
+    #: Names for arguments of options that take arguments, to be used in
+    #: automatically generated help messages
+    _help_optarg = {}
+
+    #: Short description of program for title line
+    _help_title = ""
+
+    #: Optional longer description of program to add to ``-h`` output
+    _help_description = ""
+
+    #: Prompt character to use in usage line of help message
+    _help_prompt = '$'
+
    # --- __dunder__ ---
     def __init__(self):
         r"""Initialization method
@@ -201,6 +285,8 @@ class ArgReader(KwargParser):
         self.argv = []
         #: :class:`str` -- Name of program read from ``argv[0]``
         self.prog = None
+        #: :class:`str` -- Name of subcommand to use, if any
+        self.cmdname = None
         #: :class:`list` -- Current values of non-keyword arguments
         self.argvals = []
         #: :class:`list`\ [:class:`str`] --
@@ -223,7 +309,23 @@ class ArgReader(KwargParser):
         #: in their original order)
         self.param_sequence = []
 
-    def parse(self, argv=None):
+   # --- Parsers ---
+    def fullparse(self, argv: Optional[list] = None):
+        # Decide command name
+        cmdname, argvcmd = self.decide_cmdname(argv)
+        # Check for a subcommand
+        if cmdname is None:
+            return cmdname, self
+        # Otherwise get sub-parser class
+        cls = self._cmdparsers.get(cmdname, self.__class__)
+        # Create new instance
+        subparser = cls()
+        # Parse reduced set of commands
+        subparser.parse(argvcmd)
+        # Output
+        return cmdname, subparser
+
+    def parse(self, argv: Optional[list] = None) -> ArgTuple:
         r"""Parse CLI args
 
         :Call:
@@ -327,8 +429,7 @@ class ArgReader(KwargParser):
         # Output current values
         return self.get_args()
 
-    # Return the args and kwargs
-    def get_args(self):
+    def get_args(self) -> ArgTuple:
         r"""Get full list of args and options from parsed inputs
 
         :Call:
@@ -349,10 +450,8 @@ class ArgReader(KwargParser):
         kwargs["__replaced__"] = [
             tuple(opt) for opt in self.kwargs_replaced]
         # Output
-        return args, kwargs
+        return ArgTuple(args, kwargs)
 
-   # --- Parsers ---
-    # Parse a single arg
     def _parse_arg(self, arg: str):
         r"""Parse type for a single CLI arg
 
@@ -433,6 +532,147 @@ class ArgReader(KwargParser):
             flags = None
         # Output
         return prefix, key, val, flags
+
+   # --- Subcommand interface ---
+    def decide_cmdname(self, argv: Optional[list] = None) -> SubCmdTuple:
+        r"""Identify sub-command if appropriate
+
+        :Call:
+            >>> cmdname, subargv = parser.decide_cmdname(argv=None)
+        :Inputs:
+            *parser*: :class:`ArgReader`
+                Command-line argument parser
+            *argv*: {``None``} | :class:`list`\ [:class:`str`]
+                Raw command-line args to parse {``sys.argv``}
+        :Outputs:
+            *cmdname*: :class:`str`
+                (Standardized) name of sub-command as supplied by user
+            *subargv*: :class:`list`\ [:class:`str`]
+                Command-line arguments for sub-command to parse
+        :Versions:
+            * 2024-11-11 ``@ddalle``: v1.0
+        """
+        # Expand CLI list if necessary
+        argv = sys.argv if argv is None else argv
+        # Parse commands as given
+        self.parse(argv)
+        # Check for a command
+        if len(self.argvals):
+            # Use first argument as default method
+            cmdname = self.argvals[0]
+        else:
+            # Attempt to infer
+            cmdname = self.infer_cmdname()
+        # Check for a command
+        if cmdname is None:
+            # No subcommand
+            return SubCmdTuple(None, argv)
+        # Identify command
+        prog = self.prog
+        # Copy parameter sequence
+        params = list(self.param_sequence)
+        # The parameter that defines this arg
+        target_param = (None, cmdname)
+        # Loop through parameters to pop-out the first arg
+        for j, param in enumerate(params):
+            # Check
+            if param == target_param:
+                params.pop(j)
+                break
+        # Reconstruct
+        argv = self.reconstruct(params)
+        # Get full command name (apply aliases)
+        fullcmdname = self.apply_cmdmap(cmdname)
+        # Replace program name
+        argv[0] = f"{prog}>{fullcmdname}"
+        # Output
+        return SubCmdTuple(fullcmdname, argv)
+
+    def infer_cmdname(self) -> Optional[str]:
+        r"""Infer sub-command if not determined by first argument
+
+        This command is usually overwritten in subclasses for special
+        command-line interfaces where the primary task is inferred from
+        options. This version always returns ``None``
+
+        :Call:
+            >>> cmdname = parser.infer_cmdname()
+        :Inputs:
+            *parser*: :class:`ArgReader`
+                Command-line argument parser
+        :Outputs:
+            *cmdname*: :class:`str`
+                Name of sub-command
+        :Versions:
+            * 2024-11-11 ``@ddalle``: v1.0
+        """
+        return None
+
+    def apply_cmdmap(self, cmdname: str) -> str:
+        r"""Apply aliases for sub-command name
+
+        :Call:
+            >>> fullcmdname = parser.apply_cmdmap(cmdname)
+        :Inputs:
+            *parser*: :class:`ArgReader`
+                Command-line argument parser
+            *cmdname*: :class:`str`
+                Name of sub-command as supplied by user
+        :Outputs:
+            *fullcmdname*: :class:`str`
+                Standardized name of *cmdname*, usually just *cmdname*
+        :Versions:
+            * 2024-11-11 ``@ddalle``: v1.0
+        """
+        # Check for alternates
+        return self._cmdmap.get(cmdname, cmdname)
+
+   # --- Reconstruction ---
+    def reconstruct(self, params: Optional[list] = None) -> list:
+        r"""Recreate a command from parsed information
+
+        :Call:
+            >>> cmdlist = parser.reconstruct()
+        :Inputs:
+            *parser*: :class:`ArgReader`
+                Command-line argument parser
+            *params*: {``None``} | :class:`list`\ [:class:`tuple`]
+                Optional list of parameters (default from *parser*)
+        :Outputs:
+            *cmdlist*: :class:`list`\ [:class:`str`]
+                Reconstruction of originally parsed command
+        :Versions:
+            * 2024-11-11 ``@ddalle``: v1.0
+        """
+        # Start with programname
+        cmdlist = [self.prog.replace('>', '-')]
+        # Use default parameter sequence
+        param_sequence = self.param_sequence if params is None else params
+        # Loop through parameters in order they were read
+        for k, v in param_sequence:
+            # Check for an arg (kwarg is None)
+            if k is None:
+                cmdlist.append(v)
+                continue
+            # Check which kind of kwarg it is
+            if k in self.kwargs_equal_sign:
+                cmdlist.append(f"{k}={v}")
+                continue
+            # Check which prefix to use
+            prefix = '--' if k in self.kwargs_double_dash else '-'
+            # Check for value
+            if (v is None) or (v is True):
+                # No value
+                cmdlist.append(f"{prefix}{k}")
+            elif v is False:
+                # Negated
+                cmdlist.append(f"{prefix}no-{k}")
+            else:
+                # With value
+                cmdlist.append(f"{prefix}{k}")
+                cmdlist.append(str(v))
+        # Output
+        return cmdlist
 
    # --- Arg/Option interface ---
     def save_arg(self, arg):
@@ -524,6 +764,205 @@ class ArgReader(KwargParser):
                 self.kwargs_replaced.append((opt, self[opt]))
             # Save to current kwargs
             self[opt] = val
+
+    def get_aliases(self, opt: str) -> list:
+        r"""Get list of aliases for a particular option
+
+        :Call:
+            >>> names = parser.get_aliases(opt)
+        :Inputs:
+            *parser*: :class:`ArgReader`
+                Command-line argument parser
+            *opt*: :class:`str`
+                Name of option
+        :Outputs:
+            *names*: :class:`list`\ [:class:`str`]
+                List of aliases, including *opt*; primary name first
+        """
+        # Get primary name
+        mainopt = self._optmap.get(opt, opt)
+        # Initialize list
+        names = [mainopt]
+        # Loop through aliases
+        for alias, fullopt in self._optmap.items():
+            # Check for match
+            if fullopt == mainopt:
+                names.append(alias)
+        # Output
+        return names
+
+   # --- Help ---
+    def genr8_help(self) -> str:
+        r"""Generate automatic help message to use w/ ``-h``
+
+        :Call:
+            >>> msg = parser.genr8_optshelp()
+        :Inputs:
+            *parser*: :class:`ArgReader`
+                Command-line argument parser
+        :Outputs:
+            *msg*: :class:`str`
+                Help message
+        """
+        # Generate parts
+        title = self._genr8_help_title()
+        descr = self._genr8_help_description()
+        usage = self._genr8_help_usage()
+        parms = self._genr8_help_args()
+        optns = self._genr8_help_options()
+        # Combine results
+        return title + descr + usage + parms + optns
+
+    def genr8_optshelp(self) -> str:
+        r"""Generate help message for all the options in _optlist
+
+        :Call:
+            >>> msg = parser.genr8_optshelp()
+        :Inputs:
+            *parser*: :class:`ArgReader`
+                Command-line argument parser
+        :Outputs:
+            *msg*: :class:`str`
+                Help message for all options
+        """
+        # Get option list
+        optlist = self._help_optlist
+        # Default to _optlist if not defined
+        optlist = optlist if optlist is not None else self._optlist
+        # Generate text for each option
+        msgs = [self.genr8_opthelp(opt) for opt in optlist]
+        # Add header and join mesages
+        return "\n\n".join(msgs)
+
+    def genr8_opthelp(self, opt: str) -> str:
+        r"""Generate a help message for a particular option
+
+        :Call:
+            >>> msg = parser.genr8_opthelp(opt)
+        :Inputs:
+            *parser*: :class:`ArgReader`
+                Command-line argument parser
+            *opt*: :class:`str`
+                Name of option
+        :Outputs:
+            *msg*: :class:`str`
+                Help message for option *opt*
+        """
+        # Get all option names, with single- or double-dashes
+        optname = self._genr8_help_optnames(opt)
+        # Get main option name
+        mainopt = self._optmap.get(opt, opt)
+        # Initialize
+        msg = TAB + optname
+        # Check for option name
+        argname = self._help_optarg.get(mainopt)
+        # Append if necessary
+        if argname:
+            msg = f"{msg} {argname}"
+        # Get description
+        optdescr = self._help_opt.get(mainopt)
+        # Append if necessary
+        if optdescr:
+            msg += f"\n{TAB}{TAB}{optdescr}"
+        # Get default value
+        vdef = self._rc.get(mainopt)
+        # Check for default value
+        if vdef is not None:
+            # Use old-fashioned string format b/c using braces in str
+            msg += " {%s}" % vdef
+        # Output
+        return msg
+
+    def _genr8_help_title(self) -> str:
+        r"""Generate header portion of ``-h`` output"""
+        # Initialize with name of program
+        title = f"``{self._name}``"
+        # Get short description/title
+        short_descr = self._help_title
+        # Append if appropriate
+        title += '' if not short_descr else f": {short_descr}"
+        # Add divider to mark as title
+        hline = '=' * len(title)
+        # Return with a
+        return f"{title}\n{hline}"
+
+    def _genr8_help_description(self) -> str:
+        r"""Generate longer description if necessary"""
+        # Get description
+        descr = self._help_description
+        # Return if defined
+        return "" if descr is None else f"\n\n{descr}"
+
+    def _genr8_help_usage(self) -> str:
+        r"""Create the ``Usage`` portion of help message"""
+        # Initialize message
+        msg = f"\n\n:Usage:\n{TAB}.. code-block:: console\n\n"
+        # Get character for prompt
+        c = self._help_prompt
+        # Generate prompt char(s) and space, if necessary
+        strt = '' if not c else f"{c} "
+        # Add prompt and program name
+        msg += f"{TAB*2}{strt}{self._name}"
+        # Get lists of args and options
+        args = self._arglist
+        opts = self._optlist
+        # Loop through required args
+        for j in range(self._nargmin):
+            # Add argument name
+            msg += f" {args[j]}"
+        # Cover optional arguments
+        if len(args) > self._nargmin:
+            # Loop through optional args
+            for j in range(self._nargmin, len(args)):
+                msg += f" [{args[j]}"
+            # Close all the optional args
+            msg += ']'*(len(args) - self._nargmin)
+        # Append [OPTIONS] if necessary
+        msg += " [OPTIONS]" if opts else ""
+        # Output
+        return msg
+
+    def _genr8_help_args(self) -> str:
+        # Initialize empty message
+        msg = ''
+        # Add argument descriptions
+        for j, arg in enumerate(self._arglist):
+            # Add section header
+            if j == 0:
+                msg = "\n\n:Arguments:"
+            # Get description
+            descr = self._help_opt.get(arg, '')
+            # Get default value
+            vdef = self._rc.get(arg)
+            # Initialize message
+            msgj = f"\n{TAB}**{arg}**: {descr}"
+            # Add default value
+            msgvdef = '' if vdef is None else f" {vdef}"
+            # Append
+            msg += msgj + msgvdef
+        # Output
+        return msg
+
+    def _genr8_help_options(self) -> str:
+        # Get options formatting
+        optmsg = self.genr8_optshelp()
+        # Add section title
+        msg = f"\n\n:Options:\n{optmsg}" if optmsg else ""
+        # Output
+        return msg
+
+    def _genr8_help_optnames(self, opt: str) -> str:
+        r"""Create option names for all aliases, ``-h, --help``"""
+        # Get list of aliases
+        names = self.get_aliases(opt)
+        # Create message for each
+        helpnames = [self._genr8_help_optname(name) for name in names]
+        # Join them
+        return ', '.join(helpnames)
+
+    def _genr8_help_optname(self, opt: str) -> str:
+        prefix = '--' if len(opt) > 1 else '-'
+        return prefix + opt
 
 
 # Class with single_dash_split=False (default)
