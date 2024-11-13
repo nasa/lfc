@@ -659,14 +659,19 @@ class LFCArgParser(ArgReader):
         "bare": "The new repo will be bare (no working files)",
         "default": "Declare specified remote as default",
         "force": "Overwrite unchached large file or purge file not on remote",
+        "fname": "Name of file to display",
         "help": "Display this help message and exit",
         "mode": "LFC-mode to use {1} | 2",
         "quiet": "Reduce STDOUT",
+        "ref": "Git ref, e.g. commit hash or branch; default is ``HEAD``",
         "remote": "Use LFC remote named *REMOTE* (else use default remote)",
+        "file1": "First file name or file name pattern",
+        "file2": "Second file name or file name pattern",
     }
 
     # Arg names in option help messages
     _help_optarg = {
+        "ref": "REF",
         "remote": "REMOTE",
     }
 
@@ -1143,12 +1148,6 @@ class LFCPurgeParer(LFCArgParser):
     \rappropriate) and local cache files.
     """
 
-    # Additional option descriptions
-    _help_opt = {
-        "file1": "First file name or file name pattern",
-        "file2": "Second file name or file name pattern",
-    }
-
 
 # Special parser for lfc-push
 class LFCPushParser(LFCArgParser):
@@ -1320,7 +1319,38 @@ class LFCRemoteListParser(LFCArgParser):
     )
 
     # Primary purpose of command
-    _help_title = "Show URLs to current LFC remote caches"
+    _help_title = "Remove an LFC remote from config"
+
+
+# Special parser for lfc-remote-add
+class LFCRemoteRemoveParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-remote-rm"
+
+    # Viable options
+    _optlist = (
+        "help",
+    )
+
+    # Positional parameters
+    _arglist = (
+        "remote",
+    )
+
+    # Required args
+    _nargmin = 1
+    _nargmax = 1
+
+    # Primary purpose of command
+    _help_title = "Set or modify URL for an LFC remote cache"
+
+    # Additional descriptions
+    _help_opt = {
+        "url": "Path to remote cache (SSH or local)",
+    }
 
 
 # Front desk for LFC-remote
@@ -1333,12 +1363,14 @@ class LFCRemoteFrontDesk(ArgReader):
         "add",
         "add-hosts",
         "list",
+        "rm",
     )
 
     # Optional command names
     _cmdmap = {
         "add-host": "add-hosts",
         "ls": "list",
+        "remove": "rm",
         "set-url": "add",
     }
 
@@ -1346,7 +1378,8 @@ class LFCRemoteFrontDesk(ArgReader):
     _cmdparsers = {
         "add": LFCRemoteAddParser,
         "add-hosts": LFCRemoteAddHostsParser,
-        "list": LFCRemoteListParser
+        "list": LFCRemoteListParser,
+        "rm": LFCRemoteRemoveParser,
     }
 
     # Aliases
@@ -1370,7 +1403,121 @@ class LFCRemoteFrontDesk(ArgReader):
         "add": "Add or modify an LFC remote",
         "add-hosts": "Add regular expressions for local hostname(s)",
         "list": "Display current LFC remote URLs",
+        "rm": "Remove an LFC remote from config",
     }
+
+
+# Special parser for lfc-replace-dvc
+class LFCReplaceDVCParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-replace-dvc"
+
+    # Viable options
+    _optlist = (
+        "help",
+    )
+
+    # Primary purpose of command
+    _help_title = "Replace any DVC settings and file names"
+
+    # Longer description
+    _help_description = """
+    \rAlthough LFC can work in an existing DVC repo, using ``lfc-add`` will
+    \rbreak DVC's ability to function. It is usually preferable to make a
+    \rrepo where you intend to use LFC use the ``.lfc`` file extension instead
+    \rof ``.dvc``.  This command removes some DVC artifacts and rename others.
+
+    \rThis will rename some files and folders:
+
+        * ``.dvc/`` -> ``.lfc/``
+        * ``*.dvc`` -> ``*.lfc``
+
+    \rIt will also delete some JSON files used by DVC if present.
+
+    \rThe function is safe to call multiple times if DVC has been
+    \rpartially replaced. If there are no DVC artifacts, this function
+    \rwill take no action.
+
+    \rIt does **not** recompute hashes. If any existing MD-5 hashes are
+    \rpresent, LFC will continue to use them, but updating the file
+    \r(using ``lfc add``) will still use a SHA-256 hash.
+    """
+
+
+# Special parser for lfc-set-mode
+class LFCSetModeParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-set-mode"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "mode",
+        "1",
+        "2",
+    )
+
+    # Positional parameters
+    _arglist = (
+        "file1",
+        "file2",
+    )
+
+    # Required inputs
+    _nargmin = 1
+
+    # Primary purose of command
+    _help_title = "Set the mode of one or more LFC files"
+
+    # Longer description
+    _help_description = """
+    \rThis file can change the mode of one or more large files that have
+    \ralready been added (and therefore a ``.lfc`` file exists). You can
+    \rset the mode to either ``1`` or ``2``:
+
+    \r* Mode-1 files are auto-pushed and -pulled with git pushes and pulls
+    \r* Mode-2 files are explicitly on-demand
+    """
+
+
+# Custom parser for lfc-show
+class LFCShowParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-show"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "ref",
+    )
+    
+    # Positional parameters
+    _arglist = (
+        "fname",
+    )
+    
+    # Required args
+    _nargmin = 1
+    _nargmax = 1
+
+    # Purpose of command
+    _help_title = "Print contents of a large file to STDOUT"
+
+    # Longer description
+    _help_description = """
+    \rPrint contents of a large file to STDOUT, even in a bare repo. This
+    \rfunction does not decode the bytes so that binary files can be piped
+    \rfrom bare repos through STDOUT.
+    """
 
 
 # Front-desk for LFC, to decide which subcommand
@@ -1420,6 +1567,9 @@ class LFCFrontDesk(ArgReader):
         "purge": LFCPurgeParer,
         "push": LFCPushParser,
         "remote": LFCRemoteFrontDesk,
+        "replace-dvc": LFCReplaceDVCParser,
+        "set-mode": LFCSetModeParser,
+        "show": LFCShowParser,
         "_default_": LFCArgParser,
     }
 

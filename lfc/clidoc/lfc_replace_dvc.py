@@ -1,4 +1,5 @@
 
-from ..cli import HELP_REPLACE_DVC
+from ..cli import LFCReplaceDVCParser
 
-__doc__ = HELP_REPLACE_DVC
+parser = LFCReplaceDVCParser()
+__doc__ = parser.genr8_help()

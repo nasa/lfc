@@ -1,4 +1,5 @@
 
-from ..cli import HELP_SET_MODE
+from ..cli import LFCSetModeParser
 
-__doc__ = HELP_SET_MODE
+parser = LFCSetModeParser()
+__doc__ = parser.genr8_help()

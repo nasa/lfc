@@ -949,12 +949,12 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
         # Loop through required args
         for j in range(self._nargmin):
             # Add argument name
-            msg += f" {args[j]}"
+            msg += f" {args[j].upper()}"
         # Cover optional arguments
         if len(args) > self._nargmin:
             # Loop through optional args
             for j in range(self._nargmin, len(args)):
-                msg += f" [{args[j]}"
+                msg += f" [{args[j].upper()}"
             # Close all the optional args
             msg += ']'*(len(args) - self._nargmin)
         # Append [OPTIONS] if necessary
@@ -999,7 +999,7 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
             # Get default value
             vdef = self._rc.get(arg)
             # Initialize message
-            msgj = f"\n{TAB}**{arg}**: {descr}"
+            msgj = f"\n{TAB}**{arg.upper()}**: {descr}"
             # Add default value
             msgvdef = '' if vdef is None else f" {vdef}"
             # Append

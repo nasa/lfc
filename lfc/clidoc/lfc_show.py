@@ -1,4 +1,5 @@
 
-from ..cli import HELP_SHOW
+from ..cli import LFCShowParser
 
-__doc__ = HELP_SHOW
+parser = LFCShowParser()
+__doc__ = parser.genr8_help()
