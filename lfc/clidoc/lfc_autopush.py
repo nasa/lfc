@@ -1,4 +1,5 @@
 
-from ..cli import HELP_AUTOPUSH
+from ..cli import LFCAutoPushParser
 
-__doc__ = HELP_AUTOPUSH
+parser = LFCAutoPushParser()
+__doc__ = parser.genr8_help()

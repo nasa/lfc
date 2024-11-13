@@ -1,4 +1,5 @@
 
-from ..cli import HELP_CLONE
+from ..cli import LFCCloneParser
 
-__doc__ = HELP_CLONE
+parser = LFCCloneParser()
+__doc__ = parser.genr8_help()

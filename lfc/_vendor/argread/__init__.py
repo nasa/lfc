@@ -278,6 +278,9 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
     #: Prompt character to use in usage line of help message
     _help_prompt = '$'
 
+    #: Even more help information to write after the list of options
+    _help_extra = ""
+
    # --- __dunder__ ---
     def __init__(self):
         r"""Initialization method
@@ -817,8 +820,9 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
         parms = self._genr8_help_args()
         subcs = self._genr8_help_cmdlist()
         optns = self._genr8_help_options()
+        extra = self._genr8_help_coda()
         # Combine results
-        return title + descr + usage + parms + subcs + optns
+        return title + descr + usage + parms + subcs + optns + extra
 
     def genr8_optshelp(self) -> str:
         r"""Generate help message for all the options in _optlist
@@ -897,8 +901,12 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
         r"""Generate longer description if necessary"""
         # Get description
         descr = self._help_description
-        # Return if defined
-        return "" if descr is None else f"\n\n{descr}"
+        # Replace None -> ''
+        descr = '' if descr is None else descr
+        # Strip newline chars
+        descr = descr.strip('\n')
+        # Prepend two newline chars
+        return f"\n\n{descr}"
 
     def _genr8_help_usage(self) -> str:
         r"""Create the ``Usage`` portion of help message"""
@@ -998,6 +1006,17 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
     def _genr8_help_optname(self, opt: str) -> str:
         prefix = '--' if len(opt) > 1 else '-'
         return prefix + opt
+
+    def _genr8_help_coda(self) -> str:
+        r"""Generate additional help at the end"""
+        # Get description
+        descr = self._help_extra
+        # Replace None -> ''
+        descr = '' if descr is None else descr
+        # Strip newline chars
+        descr = descr.strip('\n')
+        # Prepend two newline chars
+        return f"\n\n{descr}"
 
 
 # Class with single_dash_split=False (default)

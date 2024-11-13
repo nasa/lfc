@@ -1,4 +1,5 @@
 
-from ..cli import HELP_ADD
+from ..cli import LFCAddParser
 
-__doc__ = HELP_ADD
+parser = LFCAddParser()
+__doc__ = parser.genr8_help()

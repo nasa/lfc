@@ -1,4 +1,5 @@
 
-from ..cli import HELP_PULL
+from ..cli import LFCPullParser
 
-__doc__ = HELP_PULL
+parser = LFCPullParser()
+__doc__ = parser.genr8_help()

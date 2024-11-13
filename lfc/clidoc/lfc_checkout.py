@@ -1,4 +1,5 @@
 
-from ..cli import HELP_CHECKOUT
+from ..cli import LFCCheckoutParser
 
-__doc__ = HELP_CHECKOUT
+parser = LFCCheckoutParser()
+__doc__ = parser.genr8_help()

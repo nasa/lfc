@@ -1,4 +1,5 @@
 
-from ..cli import HELP_LS_FILES
+from ..cli import LFCListFilesParser
 
-__doc__ = HELP_LS_FILES
+parser = LFCListFilesParser()
+__doc__ = parser.genr8_help()

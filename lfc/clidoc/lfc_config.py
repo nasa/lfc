@@ -1,4 +1,5 @@
 
-from ..cli import HELP_CONFIG
+from ..cli import LFCConfigParser
 
-__doc__ = HELP_CONFIG
+parser = LFCConfigParser()
+__doc__ = parser.genr8_help()

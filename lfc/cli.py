@@ -101,7 +101,6 @@ hooks are installed.
         Use remote cache named *REMOTE* (w/o ``-r`` flag, use default
         remote)
 """
-HELP_AUTOPULL
 
 HELP_AUTOPUSH = r"""
 ``lfc-auto-push``: Push all mode-2 files
@@ -625,6 +624,610 @@ HELP_DICT = {
 }
 
 
+# Customized CLI parser
+class LFCArgParser(ArgReader):
+    # No attributes
+    __slots__ = ()
+
+    # Aliases
+    _optmap = {
+        "d": "default",
+        "f": "force",
+        "h": "help",
+        "q": "quiet",
+        "r": "remote",
+    }
+
+    # Options that never take a value
+    _optlist_noval = (
+        "default",
+        "help",
+        "quiet",
+    )
+
+    # Options that convert from string
+    _optconverters = {
+        "mode": int,
+    }
+
+    # Descriptions
+    _help_opt = {
+        "1": "Limit operations to mode-1 files",
+        "2": "Limit operations to mode-2 files",
+        "bare": "The new repo will be bare (no working files)",
+        "default": "Declare specified remote as default",
+        "force": "Overwrite unchached large file or purge file not on remote",
+        "help": "Display this help message and exit",
+        "mode": "LFC-mode to use {1} | 2",
+        "quiet": "Reduce STDOUT",
+        "remote": "Use LFC remote named *REMOTE* (else use default remote)",
+    }
+
+    # Arg names in option help messages
+    _help_optarg = {
+        "remote": "REMOTE",
+    }
+
+
+# Special parser for lfc-add
+class LFCAddParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-add"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "mode",
+        "1",
+        "2",
+        "quiet",
+    )
+
+    # One input required
+    _nargmin = 1
+
+    # Primary purpose of command
+    _help_title = "Add or update a large file"
+
+    # Longer description
+    _help_description = """
+    \rThis command first finds all files in a WORKING repo (non-bare) that
+    \rmatch one or more user-specified file name patterns relative to the
+    \rcurrent working directory and then  performs the following actions for
+    \reach corresponding large file:
+
+    * Calculates the SHA-256 hash of the contents of that file
+    * Stores that file in ``.lfc/cache/``
+    * Creates a metadata file that appends ``.lfc`` to the file name"""
+
+    # List of arguments (for help)
+    _arglist = (
+        "pat",
+        "pat1",
+    )
+
+    # Description for additional options
+    _help_opt = {
+        "pat": "Pattern for file(s) to add",
+        "pat1": "Second pattern for files to add",
+    }
+
+
+# Special parser for lfc-auto-pull
+class LFCAutoPullParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-auto-pull"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "remote",
+    )
+
+    # Primary purpose of command
+    _help_title = "Pull all mode-2 files"
+
+    # Longer description
+    _help_description = """
+    \rThis command can only be run in a WORKING repo. It will pull the latest
+    \rversion of all mode-2 files. It will not pull any old versions of large
+    \rfiles. This can be configured to be either all large files (modes 1 and
+    \r2) or no large files.
+
+    \rThis command is triggered automatically after ``git-pull`` if the LFC
+    \rhooks are installed.
+    """
+
+
+# Special parser for lfc-auto-push
+class LFCAutoPushParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-auto-push"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "remote",
+    )
+
+    # Primary purpose of command
+    _help_title = "Push all mode-2 files"
+
+    # Longer description
+    _help_description = """
+    \rThis command can only be run in a WORKING repo. It will push the latest
+    \rversion of all mode-2 files. It will not push any old versions of large
+    \rfiles. This can be configured to be either all large files (modes 1 and
+    \r2) or no large files.
+
+    \rThis command is triggered automatically after ``git-push`` if the LFC
+    \rhooks are installed.
+    """
+
+
+# Special parser for lfc-checkout
+class LFCCheckoutParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-checkout"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "force",
+    )
+
+    # Primary purpose of command
+    _help_title = "Check out a large file from cache"
+
+    # Longer description
+    _help_description = """
+    \rThis function first finds one or more files that match at least one of
+    \rthe file name patterns given by the user. The goal is to find ``.lfc``
+    \rfiles, since the original large files are not expected to exist. Then
+    \rfor each such file, it will try to copy a file from the local cache
+    \rbased on the hash in the ``.lfc`` file."""
+
+    # Custom option description
+    _help_opt = {
+        "force": "overwrite existing uncached working file",
+    }
+
+
+# Special parser for lfc-clone
+class LFCCloneParser(LFCAddParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-clone"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "bare",
+        "in_repo",
+        "out_repo",
+    )
+
+    # Positional parameters
+    _arglist = (
+        "in_repo",
+        "out_repo",
+    )
+
+    # Minimum args
+    _nargmin = 1
+
+    # Primary purose of function
+    _help_title = "Clone a repo (using git) and pull all mode-2 LFC files"
+
+    # Longer description
+    _help_description = """
+    \rThis function is equivalent to calling ``git clone`` but with two
+    \radditional actions after the git clone operation is completed:
+
+    \r1. Install hooks (see ``lfc install-hooks``)
+    \r2. Pull most recent version of all mode-2 files (``lfc auto-pull``)
+
+    \rIt is equivalent to a normal git clone followed by those two commands.
+    """
+
+    # Additional option descriptions
+    _help_opt = {
+        "in_repo": "URL of repo to fork or clone",
+        "out_repo": "(optional) name of new repo",
+    }
+
+
+# Ront-desk for lfc-config
+class LFCConfigParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-config"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "cmdname",
+        "opt",
+        "val",
+    )
+
+    # Allowed values
+    _optvals = {
+        "cmd": ("get", "set"),
+    }
+
+    # Positional parameters
+    _arglist = (
+        "cmdname",
+        "opt",
+        "val",
+    )
+
+    # Minimum arg count
+    _nargmin = 2
+    _nargmax = 3
+
+    # Primary purpose of command
+    _help_title = "View or set LFC config variables"
+
+    # Longer description
+    _help_extra = """
+    \r:Examples:
+    \r    This will set the default "remote" to ``hub``:
+
+    \r    .. code-block:: console
+
+    \r        $ lfc config set core.remote hub
+
+    \r    This will print the name of the default remote (if set)
+
+    \r    .. code-block:: console
+
+    \r        $ lfc config get core.remote
+    \r        hub
+    """
+
+    # Additional option descriptions
+    _help_opt = {
+        "cmdname": "Name of config action (get | set)",
+        "opt": "Section and option name joined by ``.``, e.g. ``core.remote``",
+        "val": "Value to set for option when using ``set``",
+    }
+
+
+# Special parser for lfc-init
+class LFCInitParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Name of command
+    _name = "lfc-init"
+
+    # Viable options
+    _optlist = (
+        "help",
+    )
+
+    # Primary purpose of command
+    _help_title = "Initialize LFC repo"
+
+    # Longer description
+    _help_description = """
+    \rThis creates two folders (if they don't exist):
+
+    \r* ``.lfc/``
+    \r* ``.lfc/cache/``
+
+    \rAnd several files:
+
+    \r* ``.lfc/config``
+    \r* ``.lfc/.gitignore``
+    """
+
+
+# Special parser for lfc-install-hooks
+class LFCInstallHooksParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Name of command
+    _name = "lfc-install-hooks"
+
+    # Viable options
+    _optlist = (
+        "help",
+    )
+
+    # Primary purpose of command
+    _help_title = "Install LFC git-hooks"
+
+    # Longer description
+    _help_description = """
+    \rThis will create two executable files
+
+    \r* ``.git/hooks/pre-push``
+    \r* ``.git/hooks/post-merge``
+
+    \rrelative to the top-level folder, unless they already exist.
+    """
+
+
+# Special parser for lfc-ls-files
+class LFCListFilesParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Name of command
+    _name = "lfc-ls-files"
+
+    # Viable options
+    _optlist = (
+        "help",
+    )
+
+    # Positional parameters
+    _arglist = (
+        "pat1",
+        "pat2",
+    )
+
+    # Required arguments
+    _nargmin = 0
+
+    # Primary purpose of command
+    _help_title = "List large files"
+
+    # Longer description
+    _help_description = """
+    \rThis command lists all ``.lfc`` files matching specified constraints. If
+    \rno arguments are given, it will list all ``.lfc`` files in the current
+    \rworking directory or any folder within (recursively). Users can limit
+    \rthis to all files starting with ``m``, for example, or apply any other
+    \rconstratins.
+    """
+
+    # Description of additional options
+    _help_opt = {
+        "pat1": "First pattern for files to list",
+        "pat2": "Second pattern for files to list",
+    }
+
+
+# Special parser for lfc-pull
+class LFCPullParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Name of command
+    _name = "lfc-pull"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "remote",
+        "mode",
+        "1",
+        "2",
+        "force",
+        "quiet",
+    )
+
+    # Positional parameters
+    _arglist = (
+        "pat1",
+        "pat2",
+    )
+
+    # Primary purpose of command
+    _help_title = "Retrieve and checkout one or more large files"
+
+    # Longer description
+    _help_description = """
+    \rThis function retrieves (either through remote or local copy) files,
+    \rputs them in the local cache, and then checks out a copy to the WORKING
+    \rrepo. This command cannot be called from a bare repo.
+
+    \rThe first step is to find all ``.lfc`` files matching the users input.
+    \rUsers can specify which files to get by providing a list of file name
+    \rpatterns. If the user does not specify any patterns, all files in the
+    \rcurrent working directory or child directories (recursive) are pulled.
+
+    \rThen for each ``.lfc`` file that meets these constraints, it downloads
+    \rthe file into the working repo's ``.lfc/cache/`` folder and then copies
+    \rthe local cache file to the working repo.
+    """
+
+    # Custom option description
+    _help_opt = {
+        "force": "overwrite existing uncached working file",
+        "pat1": "First file name or pattern for files to pull",
+        "pat2": "Second file name or pattern for files to pull",
+    }
+
+    # Even more help
+    _help_extra = """
+    \r:Examples:
+    This will download and checkout the file ``myfile.dat`` if the file
+    ``myfile.dat.lfc`` exists:
+
+        .. code-block:: console
+
+            $ lfc pull myfile.dat
+
+    Note that
+
+        .. code-block:: console
+
+            $ lfc pull myfile.dat.lfc
+
+    is equivalent. Suppose the hash for this file is ``'a4b3f7'``. Then
+    it will look for the file ``a4/b3f7`` on the remote cache, copy it
+    to the local cache, and then copy that file to ``myfile.dat`` in the
+    current working directory.
+
+    This will download and check out all files starting with ``a`` or
+    ``b`` for which an ``.lfc`` file exists:
+
+        .. code-block:: console
+
+            $ lfc pull "a*.lfc" "b*.lfc"
+
+    Suppose the current folder has these files:
+
+        a1.dat
+        a1.dat.lfc
+        a2.dat
+        a3.dat.lfc
+
+    Then the above command would act on the files ``a1.dat`` and
+    ``a3.dat``. ``a2.dat`` is not processed because there is no large
+    file metadata file.
+    """
+
+
+# Special parser for lfc-purge
+class LFCPurgeParer(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-purge"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "remote",
+        "force",
+        "quiet",
+    )
+
+    # Positional parameters
+    _arglist = (
+        "file1",
+        "file2",
+    )
+
+    # Primary purpose of command
+    _help_title = "Remove large file(s) from working copy and cache"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "remote",
+        "force",
+        "quiet",
+    )
+
+    # Longer description
+    _help_description = """
+    \rThis function clears large file(s) from a (usually working) repo when
+    \rthe user no longer needs them. It deletes both working copies (if
+    \rappropriate) and local cache files.
+    """
+
+    # Additional option descriptions
+    _help_opt = {
+        "file1": "First file name or file name pattern",
+        "file2": "Second file name or file name pattern",
+    }
+
+
+# Special parser for lfc-push
+class LFCPushParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Name of command
+    _name = "lfc-push"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "remote",
+        "mode",
+        "1",
+        "2",
+        "quiet",
+    )
+
+    # Positional parameters
+    _arglist = (
+        "pat1",
+        "pat2",
+    )
+
+    # Primary purpose of command
+    _help_title = "Push one or more large files to remote cache"
+
+    # Longer description
+    _help_description = """
+    \rThis sends files from a WORKING repo to a remote cache. It copies files
+    \rfrom the local cache to a remote cache, so if large files are not cached
+    \r(using ``lfc add``), they cannot be pushed.
+
+    \rThe first step is to find all ``.lfc`` files matching the users input.
+    \rUsers can specify which files to get by providing a list of file name
+    \rpatterns. If the user does not specify any patterns, all files in the
+    \rcurrent working directory or child directories (recursive) are pulled.
+
+    \rThen for each ``.lfc`` file that meets these constraints, it reads that
+    \rfile to find the hash. It then checks the working repo's cache,
+    \r``.lfc/cache/`` for that file. If it's present, it copies it to the
+    \rremote cache
+    """
+
+    # Custom option description
+    _help_opt = {
+        "pat1": "First file name or pattern for files to push",
+        "pat2": "Second file name or pattern for files to push",
+    }
+
+    # Even more help
+    _help_extra = """
+    \r:Examples:
+    This will push the files ``myfile.dat`` and ``otherfile.dat`` if the
+    files ``myfile.dat.lfc`` and ``otherfile.dat.lfc`` exist and are
+    present in the local cache:
+
+        .. code-block:: console
+
+            $ lfc push myfile.dat otherfile.dat
+
+    Note that
+
+        .. code-block:: console
+
+            $ lfc push myfile.dat.lfc otherfile.dat.lfc
+
+    is equivalent. Suppose the hash for this file is ``'a4b3f7'``. Then
+    it will look for the file ``a4/b3f7`` in the local cache  and then
+    copy it to the remote cache with the same file name.
+
+    This will push all files starting with ``a`` with mode=2 in the
+    current folder or any child thereof
+
+        .. code-block:: console
+
+            $ lfc push "a*.lfc" -2
+    """
+
+
 # Front-desk for LFC, to decide which subcommand
 class LFCFrontDesk(ArgReader):
     # No attributes
@@ -649,6 +1252,29 @@ class LFCFrontDesk(ArgReader):
         "set-mode",
         "show",
     )
+
+    # Command aliases
+    _cmdmap = {
+        "autopull": "auto-pull",
+        "autopush": "auto-push",
+        "list-files": "ls-files",
+    }
+
+    # Sub-parsers for each command
+    _cmdparsers = {
+        "add": LFCAddParser,
+        "auto-pull": LFCAutoPullParser,
+        "auto-push": LFCAutoPushParser,
+        "checkout": LFCCheckoutParser,
+        "clone": LFCCloneParser,
+        "config": LFCConfigParser,
+        "init": LFCInitParser,
+        "install-hooks": LFCInstallHooksParser,
+        "ls-files": LFCListFilesParser,
+        "pull": LFCPullParser,
+        "purge": LFCPurgeParer,
+        "push": LFCPushParser,
+    }
 
     # Aliases
     _optmap = {
@@ -693,90 +1319,6 @@ class LFCFrontDesk(ArgReader):
         "set-mode": "Change mode of an LFC file",
         "show": "Show bytes of large file, even in bare repo",
     }
-
-
-# Customized CLI parser
-class LFCArgParser(ArgReader):
-    # No attributes
-    __slots__ = ()
-
-    # Aliases
-    _optmap = {
-        "d": "default",
-        "h": "help",
-        "q": "quiet",
-        "r": "remote",
-    }
-
-    # Options that never take a value
-    _optlist_noval = (
-        "default",
-        "help",
-        "quiet",
-    )
-
-    # Options that convert from string
-    _optconverters = {
-        "mode": int,
-    }
-
-    # Descriptions
-    _help_opt = {
-        "1": "Limit operations to mode-1 files",
-        "2": "Limit operations to mode-2 files",
-        "default": "Use specified remote as default",
-        "help": "Display this help message and exit",
-        "mode": "LFC-mode to use {1} | 2",
-        "quiet": "Reduce STDOUT",
-        "remote": "Use LFC remote named *REMOTE*",
-    }
-
-    # Arg names in option help messages
-    _help_optarg = {
-        "remote": "REMOTE",
-    }
-
-
-# Special parser for lfc-add
-class LFCAddParser(LFCArgParser):
-    __slots__ = ()
-
-    _name = "lfc-add"
-
-    # Inputs are not required
-    _nargmin = 1
-
-    _help_title = "Add or update a large file"
-
-    _arglist = (
-        "pat",
-        "pat1",
-    )
-
-    _help_opt = {
-        "pat": "Pattern for file(s) to add",
-        "pat1": "Second pattern for files to add",
-    }
-
-    _help_description = r"""
-    This command first finds all files in a WORKING repo (non-bare) that
-    match one or more user-specified file name patterns relative to the
-    current working directory and then  performs the following actions
-    for each corresponding large file:
-
-    * Calculates the SHA-256 hash of the contents of that file
-    * Stores that file in ``.lfc/cache/``
-    * Creates a metadata file that appends ``.lfc`` to the file name"""
-
-    _optlist = (
-        "1",
-        "2",
-        "help",
-        "mode",
-        "quiet",
-    )
-
-
 
 
 # Commands for ``lfc remote``

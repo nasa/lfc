@@ -1,4 +1,5 @@
 
-from ..cli import HELP_INIT
+from ..cli import LFCInitParser
 
-__doc__ = HELP_INIT
+parser = LFCInitParser()
+__doc__ = parser.genr8_help()

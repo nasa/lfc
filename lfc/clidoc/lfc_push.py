@@ -1,4 +1,5 @@
 
-from ..cli import HELP_PUSH
+from ..cli import LFCPushParser
 
-__doc__ = HELP_PUSH
+parser = LFCPushParser()
+__doc__ = parser.genr8_help()

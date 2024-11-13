@@ -1,4 +1,5 @@
 
-from ..cli import HELP_INSTALL_HOOKS
+from ..cli import LFCInstallHooksParser
 
-__doc__ = HELP_INSTALL_HOOKS
+parser = LFCInstallHooksParser()
+__doc__ = parser.genr8_help()
