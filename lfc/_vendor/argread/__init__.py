@@ -263,6 +263,12 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
     #: automatically generated help messages
     _help_optarg = {}
 
+    #: Descriptions for sub-command names
+    _help_cmd = {}
+
+    #: Optional list and sequence of sub-commands to show in ``-h``
+    _help_cmdlist = None
+
     #: Short description of program for title line
     _help_title = ""
 
@@ -809,9 +815,10 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
         descr = self._genr8_help_description()
         usage = self._genr8_help_usage()
         parms = self._genr8_help_args()
+        subcs = self._genr8_help_cmdlist()
         optns = self._genr8_help_options()
         # Combine results
-        return title + descr + usage + parms + optns
+        return title + descr + usage + parms + subcs + optns
 
     def genr8_optshelp(self) -> str:
         r"""Generate help message for all the options in _optlist
@@ -906,23 +913,52 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
         # Get lists of args and options
         args = self._arglist
         opts = self._optlist
-        # Loop through required args
-        for j in range(self._nargmin):
-            # Add argument name
-            msg += f" {args[j]}"
-        # Cover optional arguments
-        if len(args) > self._nargmin:
-            # Loop through optional args
-            for j in range(self._nargmin, len(args)):
-                msg += f" [{args[j]}"
-            # Close all the optional args
-            msg += ']'*(len(args) - self._nargmin)
+        # Check if we're doing a sub-command
+        if self._cmdlist is None:
+            # Loop through required args
+            for j in range(self._nargmin):
+                # Add argument name
+                msg += f" {args[j]}"
+            # Cover optional arguments
+            if len(args) > self._nargmin:
+                # Loop through optional args
+                for j in range(self._nargmin, len(args)):
+                    msg += f" [{args[j]}"
+                # Close all the optional args
+                msg += ']'*(len(args) - self._nargmin)
+        else:
+            # Add message name
+            msg += " CMD"
         # Append [OPTIONS] if necessary
         msg += " [OPTIONS]" if opts else ""
         # Output
         return msg
 
+    def _genr8_help_cmdlist(self) -> str:
+        r"""Create the list of available commands in *Inputs* section"""
+        # Exit if none
+        if self._cmdlist is None:
+            return ""
+        # Initialize list
+        msg = "\n\n:Sub-commands:"
+        # Get option list
+        cmdlist = self._help_cmdlist
+        # Default to _optlist if not defined
+        cmdlist = cmdlist if cmdlist is not None else self._cmdlist
+        # Loop through commands
+        for cmdname in cmdlist:
+            # Get description
+            cmdhelp = self._help_cmd.get(cmdname, f"Run ``{cmdname}`` command")
+            # Display
+            msg += f"\n{TAB}``{cmdname}``\n"
+            msg += f"{TAB*2}{cmdhelp}\n"
+        # Output
+        return msg.rstrip('\n')
+
     def _genr8_help_args(self) -> str:
+        # Exit if doing sub-commands
+        if self._cmdlist is not None:
+            return ''
         # Initialize empty message
         msg = ''
         # Add argument descriptions

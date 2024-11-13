@@ -57,25 +57,51 @@ Track and share large and/or binary files in git repositories.
 
     Available commands are:
 
-    ==================  ===========================================
-    Command             Description
-    ==================  ===========================================
-    ``add``             Add or update a large file
-    ``auto-pull``       Pull all mode-2 files in working repo
-    ``auto-push``       Push all mode-2 files in working repo
-    ``clone``           Clone git repo, install hooks, and autopull
-    ``checkout``        Check out version of large file
-    ``config``          View or set an LFC config variable
-    ``init``            Initialize LFC for current git repo
-    ``install-hooks``   Create git hooks for autopll and autopush
-    ``ls-files``        List some or all ``.lfc`` files
-    ``pull``            Pull one or more large files
-    ``push``            Push one or more large files
-    ``remote``          View or set an LFC remote cache
-    ``replace-dvc``     Replace DVC with LFC for current repo
-    ``set-mode``        Change mode of an LFC file
-    ``show``            Show bytes of large file, even in bare repo
-    ==================  ===========================================
+    ``add``
+        Add or update a large file
+
+    ``auto-pull``
+        Pull all mode-2 files in working repo
+
+    ``auto-push``
+        Push all mode-2 files in working repo
+
+    ``clone``
+        Clone git repo, install hooks, and autopull
+
+    ``checkout``
+        Check out version of large file
+
+    ``config``
+        View or set an LFC config variable
+
+    ``init``
+        Initialize LFC for current git repo
+
+    ``install-hooks``
+        Create git hooks for autopll and autopush
+
+    ``ls-files``
+        List some or all ``.lfc`` files
+
+    ``pull``
+        Pull one or more large files
+
+    ``push``
+        Push one or more large files
+
+    ``remote``
+        View or set an LFC remote cache
+
+    ``replace-dvc``
+        Replace DVC with LFC for current repo
+
+    ``set-mode``
+        Change mode of an LFC file
+
+    ``show``
+        Show bytes of large file, even in bare repo
+
 """
 
 HELP_ADD = r"""
@@ -661,6 +687,53 @@ HELP_DICT = {
     "set-mode": HELP_SET_MODE,
     "show": HELP_SHOW,
 }
+
+
+# Front-desk for LFC, to decide which subcommand
+class LFCFrontDesk(ArgReader):
+    # No attributes
+    __slots__ = ()
+
+    # List of commands
+    _cmdlist = (
+        "add",
+        "auto-pull",
+        "auto-push",
+        "checkout",
+        "clone",
+        "config",
+        "init",
+        "install-hooks",
+        "ls-files",
+        "pull",
+        "push",
+        "purge",
+        "remote",
+        "replace-dvc",
+        "set-mode",
+        "show",
+    )
+
+    # Aliases
+    _optmap = {
+        "h": "help",
+    }
+
+    # Min arguments
+    _nargmin = 1
+
+    # Options (universal)
+    _help_optlist = (
+        "help",
+    )
+
+    # Descriptions for options
+    _help_opt = {
+        "help": "Display this help message and exit",
+    }
+
+    # Description for each command
+    
 
 
 # Customized CLI parser
