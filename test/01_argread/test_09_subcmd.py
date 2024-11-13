@@ -1,7 +1,7 @@
 
 
 # Local
-from lfc.argread import ArgReader
+from lfc._vendor.argread import ArgReader
 
 
 def test_subcmd01():
