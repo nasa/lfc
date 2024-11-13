@@ -24,9 +24,6 @@ import re
 import shutil
 import sys
 
-# Third-party imports
-import colorama
-
 # Local imports
 from .lfcclone import lfc_clone
 from .lfcerror import GitutilsError
@@ -34,9 +31,6 @@ from .lfcrepo import LFCRepo
 from ._vendor.argread import ArgReader
 from ._vendor.argread.clitext import compile_rst
 
-
-# Initialize colorama to support ANSI escape codes on Windows
-colorama.init(autoreset=True)
 
 # Regular expression for "pfe;" or other messed-up remote paths
 REGEX_WINREMOTE = re.compile("[A-Za-z][A-Za-z0-9.-]*;")
@@ -725,6 +719,64 @@ class LFCArgParser(ArgReader):
     _optconverters = {
         "mode": int,
     }
+
+    # Descriptions
+    _help_opt = {
+        "1": "Limit operations to mode-1 files",
+        "2": "Limit operations to mode-2 files",
+        "default": "Use specified remote as default",
+        "help": "Display this help message and exit",
+        "mode": "LFC-mode to use {1} | 2",
+        "quiet": "Reduce STDOUT",
+        "remote": "Use LFC remote named *REMOTE*",
+    }
+
+    # Arg names in option help messages
+    _help_optarg = {
+        "remote": "REMOTE",
+    }
+
+
+# Special parser for lfc-add
+class LFCAddParser(LFCArgParser):
+    __slots__ = ()
+
+    _name = "lfc-add"
+
+    # Inputs are not required
+    _nargmin = 1
+
+    _help_title = "Add or update a large file"
+
+    _arglist = (
+        "pat",
+        "pat1",
+    )
+
+    _help_opt = {
+        "pat": "Pattern for file(s) to add",
+        "pat1": "Second pattern for files to add",
+    }
+
+    _help_description = r"""
+    This command first finds all files in a WORKING repo (non-bare) that
+    match one or more user-specified file name patterns relative to the
+    current working directory and then  performs the following actions
+    for each corresponding large file:
+
+    * Calculates the SHA-256 hash of the contents of that file
+    * Stores that file in ``.lfc/cache/``
+    * Creates a metadata file that appends ``.lfc`` to the file name"""
+
+    _optlist = (
+        "1",
+        "2",
+        "help",
+        "mode",
+        "quiet",
+    )
+
+
 
 
 # Commands for ``lfc remote``
