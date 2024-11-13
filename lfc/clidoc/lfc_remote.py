@@ -1,4 +1,5 @@
 
-from ..cli import HELP_REMOTE
+from ..cli import LFCRemoteFrontDesk
 
-__doc__ = HELP_REMOTE
+parser = LFCRemoteFrontDesk()
+__doc__ = parser.genr8_help()

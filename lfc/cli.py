@@ -1230,6 +1230,149 @@ class LFCPushParser(LFCArgParser):
     """
 
 
+# Special parser for lfc-remote-add
+class LFCRemoteAddParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-remote-add"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "default",
+    )
+
+    # Positional parameters
+    _arglist = (
+        "remote",
+        "url",
+    )
+
+    # Required args
+    _nargmin = 2
+    _nargmax = 2
+
+    # Primary purpose of command
+    _help_title = "Set or modify URL for an LFC remote cache"
+
+    # Additional descriptions
+    _help_opt = {
+        "url": "Path to remote cache (SSH or local)",
+    }
+
+
+# Special parser for lfc-remote-add-hosts
+class LFCRemoteAddHostsParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-remote-add-hosts"
+
+    # Viable options
+    _optlist = (
+        "help",
+    )
+
+    # Positional parameters
+    _arglist = (
+        "remote",
+        "host1",
+        "host2",
+    )
+
+    # Required args
+    _nargmin = 2
+
+    # Primary purpose of command
+    _help_title = "Add regular exprs for host names to consider 'local'"
+
+    # Additional information
+    _help_description = """
+    \rSpecify one or more regular expressions for host names. LFC will then
+    \rcompare the current host name to this expression(s); if it matches,
+    \rLFC will not use SSH for data transfers.
+
+    \rThis is useful in cases where multiple machines may have local access
+    \rto a shared file system.
+    """
+
+    # Additional descriptions
+    _help_opt = {
+        "host1": "Regular expression for local hostname(s)",
+        "host2": "Additional local hostname regular expression",
+    }
+
+
+# Special parser for lfc-remote-list
+class LFCRemoteListParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-remote-list"
+
+    # Viable options
+    _optlist = (
+        "help",
+    )
+
+    # Primary purpose of command
+    _help_title = "Show URLs to current LFC remote caches"
+
+
+# Front desk for LFC-remote
+class LFCRemoteFrontDesk(ArgReader):
+    # No attributes
+    __slots__ = ()
+
+    # List of commands
+    _cmdlist = (
+        "add",
+        "add-hosts",
+        "list",
+    )
+
+    # Optional command names
+    _cmdmap = {
+        "add-host": "add-hosts",
+        "ls": "list",
+        "set-url": "add",
+    }
+
+    # Sub-parsers for each command
+    _cmdparsers = {
+        "add": LFCRemoteAddParser,
+        "add-hosts": LFCRemoteAddHostsParser,
+        "list": LFCRemoteListParser
+    }
+
+    # Aliases
+    _optmap = {
+        "h": "help",
+    }
+
+    # Name of command
+    _name = "lfc-remote"
+
+    # Primary purpose of command
+    _help_title = "Show or set URL for an LFC remote cache"
+
+    # Descriptions for options
+    _help_opt = {
+        "help": "Display this help message and exit",
+    }
+
+    # Description for each command
+    _help_cmd = {
+        "add": "Add or modify an LFC remote",
+        "add-hosts": "Add regular expressions for local hostname(s)",
+        "list": "Display current LFC remote URLs",
+    }
+
+
 # Front-desk for LFC, to decide which subcommand
 class LFCFrontDesk(ArgReader):
     # No attributes
@@ -1276,6 +1419,7 @@ class LFCFrontDesk(ArgReader):
         "pull": LFCPullParser,
         "purge": LFCPurgeParer,
         "push": LFCPushParser,
+        "remote": LFCRemoteFrontDesk,
         "_default_": LFCArgParser,
     }
 
@@ -1347,6 +1491,20 @@ IERR_OK = 0
 IERR_CMD = 16
 IERR_ARGS = 32
 IERR_FILE_NOT_FOUND = 128
+
+
+def _parse(
+        parser: Optional[ArgReader] = None,
+        argv: Optional[list] = None,
+        cls: type = LFCArgParser):
+    # Check for parser
+    parser = parser if parser is not None else cls()
+    # Parse
+    a, kw = parser.parse(argv)
+    # Remove __replaced__
+    kw.pop("__replaced__", None)
+    # Output
+    return a, kw
 
 
 def lfc_add(*a, **kw):
@@ -1657,22 +1815,46 @@ def lfc_remote(*a, **kw):
         *d*, *default*: ``True`` | {``False``}
             Set *remote* as the default LFC remote
     """
-    # Read the repo
+    # Reconstruct a parer
+    parser = LFCRemoteFrontDesk()
+    # Get rid of __replaced__
+    kw.pop("__replaced__", None)
+    # Reconstruct parameter sequence
+    param_sequence = [(None, aj) for aj in a[1:]]
+    param_sequence.extend([(k, v) for k, v in kw.items()])
+    # Save inputs
+    parser.prog = "lfc-remote"
+    parser.param_sequence = param_sequence
+    # Reconstruct command line
+    argv = parser.reconstruct()
+    # Re-parse
+    cmdname, subparser = parser.fullparse(argv)
+    # Check for no commands
+    if cmdname is None:
+        print(compile_rst(parser.genr8_help()))
+        return 0
+    # Check if command recognized
+    if cmdname not in LFCRemoteFrontDesk._cmdlist:
+        # Get closest matches
+        close = difflib.get_close_matches(
+            cmdname, LFCRemoteFrontDesk._cmdlist, n=4, cutoff=0.3)
+        # Use all if no matches
+        close = close if close else LFCRemoteFrontDesk._cmdlist
+        # Generate list as text
+        matches = " | ".join(close)
+        # Display them
+        print(f"Unexpected command '{cmdname}'")
+        print(f"Closest matches: {matches}")
+        return IERR_CMD
+    # Check for help message
+    if subparser.get("help", False):
+        # Display custom help message
+        print(compile_rst(subparser.genr8_help()))
+        return IERR_OK
+    # Read repo
     repo = LFCRepo()
-    # Check command
-    if len(a) < 1:
-        print("lfc-remote got %i arguments; at least 1 required" % len(a))
-        return IERR_ARGS
-    # Get command name
-    cmdname = a[0]
     # Get function
     func = CMD_REMOTE_DICT.get(cmdname)
-    # Check it
-    if func is None:
-        # Unrecognized function
-        print("Unexpected 'lfc-remote' command '%s'" % cmdname)
-        print("Options are: " + " | ".join(list(CMD_REMOTE_DICT.keys())))
-        return IERR_CMD
     # Run function
     func(repo, *a[1:], **kw)
 
@@ -1785,7 +1967,7 @@ CMD_DICT = {
 
 
 # Main function
-def main(argv: Optional[list]) -> int:
+def main(argv: Optional[list] = None) -> int:
     r"""Main command-line interface to ``lfc``
 
     The function works by reading the second word of ``sys.argv`` and
@@ -1824,7 +2006,7 @@ def main(argv: Optional[list]) -> int:
         print(f"Closest matches: {matches}")
         return IERR_CMD
     # Check for help message
-    if subparser.get("help", False):
+    if subparser.get("help", False) and subparser._cmdlist is None:
         # Display custom help message
         print(compile_rst(subparser.genr8_help()))
         return IERR_OK

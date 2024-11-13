@@ -131,6 +131,7 @@ REGEX_EQUALKEY = re.compile(r"(\w+)=([^=].*)")
 # A name for the ``a, kw`` tuple
 ArgTuple = namedtuple("ArgTuple", ("a", "kw"))
 SubCmdTuple = namedtuple("SubCmdTuple", ("cmdname", "argv"))
+SubParserTuple = namedtuple("SubParserTuple", ("cmdname", "subparser"))
 
 
 # Custom error class
@@ -319,20 +320,39 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
         self.param_sequence = []
 
    # --- Parsers ---
-    def fullparse(self, argv: Optional[list] = None):
+    def fullparse(self, argv: Optional[list] = None) -> SubParserTuple:
+        r"""Identify sub-command and use appropriate parser
+
+        :Call:
+            >>> cmdname, subparser = parser.fullparse(argv=None)
+        :Inputs:
+            *parser*: :class:`ArgReader`
+                Command-line argument parser
+            *argv*: {``None``} | :class:`list`\ [:class:`str`]
+                Optional arguments to parse, else ``sys.argv``
+        :Outputs:
+            *cmdname*: ``None`` | :class:`str`
+                Name of command, if identified or inferred
+            *subparser*: :class:`ArgReadder`
+                Parser for *cmdname* applied to remaining CLI args
+        :Versions:
+            * 2024-11-11 ``@ddalle``: v1.0
+        """
         # Decide command name
         cmdname, argvcmd = self.decide_cmdname(argv)
         # Check for a subcommand
         if cmdname is None:
             return cmdname, self
+        # Get default class
+        clsdef = self._cmdparsers.get("_default_", self.__class__)
         # Otherwise get sub-parser class
-        cls = self._cmdparsers.get(cmdname, self.__class__)
+        cls = self._cmdparsers.get(cmdname, clsdef)
         # Create new instance
         subparser = cls()
         # Parse reduced set of commands
         subparser.parse(argvcmd)
         # Output
-        return cmdname, subparser
+        return SubParserTuple(cmdname, subparser)
 
     def parse(self, argv: Optional[list] = None) -> ArgTuple:
         r"""Parse CLI args
@@ -905,8 +925,9 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
         descr = '' if descr is None else descr
         # Strip newline chars
         descr = descr.strip('\n')
-        # Prepend two newline chars
-        return f"\n\n{descr}"
+        # Prepend two newline chars if content
+        prefix = '\n\n' if descr else ''
+        return prefix + descr
 
     def _genr8_help_usage(self) -> str:
         r"""Create the ``Usage`` portion of help message"""
@@ -1015,8 +1036,9 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
         descr = '' if descr is None else descr
         # Strip newline chars
         descr = descr.strip('\n')
-        # Prepend two newline chars
-        return f"\n\n{descr}"
+        # Prepend two newline chars if content
+        prefix = '\n\n' if descr else ''
+        return prefix + descr
 
 
 # Class with single_dash_split=False (default)
