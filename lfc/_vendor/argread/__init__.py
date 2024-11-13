@@ -914,21 +914,20 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
         args = self._arglist
         opts = self._optlist
         # Check if we're doing a sub-command
-        if self._cmdlist is None:
-            # Loop through required args
-            for j in range(self._nargmin):
-                # Add argument name
-                msg += f" {args[j]}"
-            # Cover optional arguments
-            if len(args) > self._nargmin:
-                # Loop through optional args
-                for j in range(self._nargmin, len(args)):
-                    msg += f" [{args[j]}"
-                # Close all the optional args
-                msg += ']'*(len(args) - self._nargmin)
-        else:
+        if self._cmdlist is not None:
             # Add message name
-            msg += " CMD"
+            msg += " CMD [ARGS] [OPTIONS]"
+        # Loop through required args
+        for j in range(self._nargmin):
+            # Add argument name
+            msg += f" {args[j]}"
+        # Cover optional arguments
+        if len(args) > self._nargmin:
+            # Loop through optional args
+            for j in range(self._nargmin, len(args)):
+                msg += f" [{args[j]}"
+            # Close all the optional args
+            msg += ']'*(len(args) - self._nargmin)
         # Append [OPTIONS] if necessary
         msg += " [OPTIONS]" if opts else ""
         # Output
