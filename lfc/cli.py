@@ -19,10 +19,12 @@ programmers as well.
 """
 
 # Standard library
+import difflib
 import os
 import re
 import shutil
 import sys
+from typing import Optional
 
 # Local imports
 from .lfcclone import lfc_clone
@@ -1274,6 +1276,7 @@ class LFCFrontDesk(ArgReader):
         "pull": LFCPullParser,
         "purge": LFCPurgeParer,
         "push": LFCPushParser,
+        "_default_": LFCArgParser,
     }
 
     # Aliases
@@ -1782,51 +1785,55 @@ CMD_DICT = {
 
 
 # Main function
-def main() -> int:
+def main(argv: Optional[list]) -> int:
     r"""Main command-line interface to ``lfc``
 
     The function works by reading the second word of ``sys.argv`` and
     dispatching a dedicated function for that purpose.
 
     :Call:
-        >>> ierr = main()
+        >>> ierr = main(argv=None)
     :Inputs:
-        (read from ``sys.argv``)
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     :Outputs:
         *ierr*: :class:`int`
             Return code
     """
     # Create parser
     parser = LFCFrontDesk()
-    # Parse args
-    a, kw = parser.parse(_get_argv())
-    kw.pop("__replaced__", None)
+    # Apply fixes to raw command-line args if necessary
+    argv = _get_argv(argv)
+    # Identify subcommand
+    cmdname, subparser = parser.fullparse(argv)
     # Check for no commands
-    if len(a) == 0:
+    if cmdname is None:
         print(compile_rst(parser.genr8_help()))
         return 0
-    # Get command name
-    cmdname, argv = parser.decide_cmdname(parser.argv)
-    # Get function
-    func = CMD_DICT.get(cmdname)
-    # Check it
-    if func is None:
-        # Unrecognized function
-        print("Unexpected command '%s'" % cmdname)
-        print("Options are: " + " | ".join(list(CMD_DICT.keys())))
+    # Check if command recognized
+    if cmdname not in LFCFrontDesk._cmdlist:
+        # Get closest matches
+        close = difflib.get_close_matches(
+            cmdname, LFCFrontDesk._cmdlist, n=4, cutoff=0.3)
+        # Use all if no matches
+        close = close if close else LFCFrontDesk._cmdlist
+        # Generate list as text
+        matches = " | ".join(close)
+        # Display them
+        print(f"Unexpected command '{cmdname}'")
+        print(f"Closest matches: {matches}")
         return IERR_CMD
-    # Check for "help" option
-    if kw.get("help", False):
-        # Get help message for this command; default to main help
-        msg = HELP_DICT.get(cmdname, '')
-        print(compile_rst(msg))
-        return 0
-    # Parse remaining args
-    subparser = LFCArgParser()
-    a, kw = subparser.parse(argv)
-    kw.pop("__replaced__", None)
+    # Check for help message
+    if subparser.get("help", False):
+        # Display custom help message
+        print(compile_rst(subparser.genr8_help()))
+        return IERR_OK
+    # Get function
+    func = CMD_DICT[cmdname]
     # Run function
     try:
+        a, kw = subparser.parse()
+        kw.pop("__replaced__", None)
         ierr = func(*a, **kw)
     except GitutilsError as err:
         print(f"{err.__class__.__name__}:")
@@ -1839,7 +1846,7 @@ def main() -> int:
 
 
 # Get command-line args, filtering out weird ``winpty`` fixes
-def _get_argv() -> list:
+def _get_argv(sysargv: Optional[list] = None) -> list:
     r"""Get CLI args, but undo any ``winpty`` "fixes"
 
     This will replace
@@ -1851,15 +1858,20 @@ def _get_argv() -> list:
     ``pfe:/nobackup/``
 
     :Call:
-        >>> argv = _get_argv()
+        >>> argv = _get_argv(sysargv=None)
+    :Inputs:
+        *sysargv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use
     :Outputs:
         *argv*: :class:`list`\ [:class:`str`]
             List of filtered command-line arguments
     """
     # Initialize output
     argv = []
+    # Get CLI args if none given
+    sysargv = sys.argv if sysargv is None else sysargv
     # Loop through command-line args
-    for argi in sys.argv:
+    for argi in sysargv:
         # Check for unusual remote path start
         if REGEX_WINREMOTE.match(argi):  # pragma: no cover
             # Split full path by semicolon
