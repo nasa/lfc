@@ -46,70 +46,6 @@ BASH_EXEC = shutil.which("bash")
 WPTY_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(BASH_EXEC)))
 
 
-# Help message
-HELP_LFC = r"""
-``lfc``: Large File Control
-=============================
-
-Track and share large and/or binary files in git repositories.
-
-:Usage:
-    .. code-block:: console
-
-        $ lfc CMD [OPTIONS]
-
-:Inputs:
-    * *CMD*: name of command to run
-
-    Available commands are:
-
-    ``add``
-        Add or update a large file
-
-    ``auto-pull``
-        Pull all mode-2 files in working repo
-
-    ``auto-push``
-        Push all mode-2 files in working repo
-
-    ``clone``
-        Clone git repo, install hooks, and autopull
-
-    ``checkout``
-        Check out version of large file
-
-    ``config``
-        View or set an LFC config variable
-
-    ``init``
-        Initialize LFC for current git repo
-
-    ``install-hooks``
-        Create git hooks for autopll and autopush
-
-    ``ls-files``
-        List some or all ``.lfc`` files
-
-    ``pull``
-        Pull one or more large files
-
-    ``push``
-        Push one or more large files
-
-    ``remote``
-        View or set an LFC remote cache
-
-    ``replace-dvc``
-        Replace DVC with LFC for current repo
-
-    ``set-mode``
-        Change mode of an LFC file
-
-    ``show``
-        Show bytes of large file, even in bare repo
-
-"""
-
 HELP_ADD = r"""
 ``lfc-add``: Add or update a large file
 =======================================================
@@ -1276,7 +1212,7 @@ def main() -> int:
         print(compile_rst(parser.genr8_help()))
         return 0
     # Get command name
-    cmdname = a[0]
+    cmdname, argv = parser.decide_cmdname(parser.argv)
     # Get function
     func = CMD_DICT.get(cmdname)
     # Check it
@@ -1288,12 +1224,16 @@ def main() -> int:
     # Check for "help" option
     if kw.get("help", False):
         # Get help message for this command; default to main help
-        msg = HELP_DICT.get(cmdname, HELP_LFC)
+        msg = HELP_DICT.get(cmdname, '')
         print(compile_rst(msg))
         return 0
+    # Parse remaining args
+    subparser = LFCArgParser()
+    a, kw = subparser.parse(argv)
+    kw.pop("__replaced__", None)
     # Run function
     try:
-        ierr = func(*a[1:], **kw)
+        ierr = func(*a, **kw)
     except GitutilsError as err:
         print(f"{err.__class__.__name__}:")
         print(f"  {err}")
