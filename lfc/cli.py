@@ -24,6 +24,9 @@ import re
 import shutil
 import sys
 
+# Third-party imports
+import colorama
+
 # Local imports
 from .lfcclone import lfc_clone
 from .lfcerror import GitutilsError
@@ -31,6 +34,9 @@ from .lfcrepo import LFCRepo
 from ._vendor.argread import ArgReader
 from ._vendor.argread.clitext import compile_rst
 
+
+# Initialize colorama to support ANSI escape codes on Windows
+colorama.init(autoreset=True)
 
 # Regular expression for "pfe;" or other messed-up remote paths
 REGEX_WINREMOTE = re.compile("[A-Za-z][A-Za-z0-9.-]*;")
@@ -719,8 +725,15 @@ class LFCFrontDesk(ArgReader):
         "h": "help",
     }
 
-    # Min arguments
-    _nargmin = 1
+    # Name of command
+    _name = "lfc"
+
+    # Overall description
+    _help_title = "Large File Control"
+
+    # Longer description
+    _help_description = (
+        "Track and share large and/or binary files in git repositories")
 
     # Options (universal)
     _help_optlist = (
@@ -733,7 +746,23 @@ class LFCFrontDesk(ArgReader):
     }
 
     # Description for each command
-    
+    _help_cmd = {
+        "add": "Add or update a large file",
+        "auto-pull": "Pull all mode-2 files in working repo",
+        "auto-push": "Push all mode-2 files in working repo",
+        "clone": "Clone git repo, install hooks, and autopull",
+        "checkout": "Check out version of large file",
+        "config": "View or set an LFC config variable",
+        "init": "Initialize LFC for current git repo",
+        "install-hooks": "Create git hooks for autopll and autopush",
+        "ls-files": "List some or all ``.lfc`` files",
+        "pull": "Pull one or more large files",
+        "push": "Push one or more large files",
+        "remote": "View or set an LFC remote cache",
+        "replace-dvc": "Replace DVC with LFC for current repo",
+        "set-mode": "Change mode of an LFC file",
+        "show": "Show bytes of large file, even in bare repo",
+    }
 
 
 # Customized CLI parser
@@ -1238,13 +1267,13 @@ def main() -> int:
             Return code
     """
     # Create parser
-    parser = LFCArgParser()
+    parser = LFCFrontDesk()
     # Parse args
     a, kw = parser.parse(_get_argv())
     kw.pop("__replaced__", None)
     # Check for no commands
     if len(a) == 0:
-        print(compile_rst(HELP_LFC))
+        print(compile_rst(parser.genr8_help()))
         return 0
     # Get command name
     cmdname = a[0]
