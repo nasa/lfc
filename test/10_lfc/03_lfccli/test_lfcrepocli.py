@@ -64,7 +64,7 @@ def test_cli01():
     fp = open("stdout", 'w')
     sys.stdout = fp
     # Run lfc-config get
-    lfc_config(argv=['lfc', 'config', "get", "core.remote"])
+    lfc_config(argv=['lfc-config', "get", "core.remote"])
     # Compare STDOUT to expectation
     fp.close()
     testutils.compare_files("stdout", "hub\n")

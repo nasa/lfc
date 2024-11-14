@@ -1078,16 +1078,12 @@ def lfc_add(parser=None, argv=None):
     r"""Calculate metadata for large file(s) and cache them
 
     :Call:
-        >>> lfc_add(*a, **kw)
-        >>> lfc_add(pat1, mode=1)
-        >>> lfc_add(pat1, pat2, ..., mode=1)
+        >>> lfc_add(parser=None, argv=None)
     :Inputs:
-        *pat1*: :class:`str`
-            Name of large file or file name pattern
-        *pat2*: :class:`str`
-            Second file name or file name pattern
-        *mode*: {``1``} | ``2``
-            LFC mode for each added file
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCAddParser)
@@ -1113,15 +1109,12 @@ def lfc_autopull(parser=None, argv=None):
     but that is not the primary use case.
 
     :Call:
-        >>> lfc_autopull()
-        >>> lfc_autopull(pat1, pat2, ..., quiet=True)
+        >>> lfc_autopull(parser=None, argv=None)
     :Inputs:
-        *pat1*: :class:`str`
-            Name of large file or file name pattern
-        *pat2*: :class:`str`
-            Second file name or file name pattern
-        *quiet*: {``True``} | ``False``
-            Option to suppress STDOUT for files already up-to-date
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCAutoPullParser)
@@ -1150,15 +1143,12 @@ def lfc_autopush(parser=None, argv=None):
     but that is not the primary use case.
 
     :Call:
-        >>> lfc_autopush()
-        >>> lfc_autopush(pat1, pat2, ..., quiet=True)
+        >>> lfc_autopush(parser=None, argv=None)
     :Inputs:
-        *pat1*: :class:`str`
-            Name of large file or file name pattern
-        *pat2*: :class:`str`
-            Second file name or file name pattern
-        *quiet*: {``True``} | ``False``
-            Option to suppress STDOUT for files already up-to-date
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCAutoPushParser)
@@ -1185,15 +1175,12 @@ def lfc_checkout(parser=None, argv=None):
     that are in the current folder or children thereof.
 
     :Call:
-        >>> lfc_checkout()
-        >>> lfc_checkout(pat1, pat2, ..., force=False)
+        >>> lfc_checkout(parser=None, argv=None)
     :Inputs:
-        *pat1*: :class:`str`
-            Name of large file or file name pattern
-        *pat2*: :class:`str`
-            Second file name or file name pattern
-        *f*, *force*: ``True`` | {``False``}
-            Delete uncached working file if present
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCCheckoutParser)
@@ -1212,16 +1199,12 @@ def lfc_clone(parser=None, argv=None):
     r"""Clone a repo (using git) and pull all mode-2 LFC files
 
     :Call:
-        >>> ierr = lfc_clone(in_repo, bare=False)
-        >>> ierr = lfc_clone(in_repo, out_repo, bare=False)
+        >>> ierr = lfc_clone(parser=None, argv=None)
     :Inputs:
-        *in_repo*: :class:`str`
-            URL to repo to clone
-        *out_repo*: {``None``} | :class:`str`
-            Explicit name of created repo; defaults to basename of
-            *in_repo*
-        *bare*: ``True`` | {``False``}
-            Whether new repo should be a bare repo
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     :Outputs:
         *ierr*: :class:`int`
             Return code
@@ -1230,7 +1213,7 @@ def lfc_clone(parser=None, argv=None):
     parser = _parse(parser, argv, LFCCloneParser)
     # Check for help
     if _help(parser):
-        return
+        return IERR_OK
     # Get args
     a, kw = parser.get_args()
     # Create nominal command
@@ -1272,15 +1255,12 @@ def lfc_config(parser=None, argv=None):
     r"""Print or set an LFC configuration variable
 
     :Call:
-        >>> lfc_config(cmdname, fullopt)
-        >>> lfc_config(cmdname, fullopt, val)
+        >>> lfc_config(parser=None, argv=None)
     :Inputs:
-        *cmdname*: ``"get"`` | ``"set"``
-            LFC configuration operation to take
-        *fullopt*: :class:`str`
-            Full option name, ``"{sec}.{opt}"``
-        *val*: :class:`object`
-            Value to set if *cmdname* is ``"set"``
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCListFilesParser)
@@ -1323,7 +1303,12 @@ def lfc_init(parser=None, argv=None) -> int:
     *   ``.lfc/.gitignore``
 
     :Call:
-        >>> lfc_init()
+        >>> lfc_init(parser=None, argv=None)
+    :Inputs:
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCInitParser)
@@ -1351,7 +1336,12 @@ def lfc_install_hooks(parser=None, argv=None):
     file, it also makes the executable.
 
     :Call:
-        >>> lfc_install_hooks()
+        >>> lfc_install_hooks(parser=None, argv=None)
+    :Inputs:
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCInstallHooksParser)
@@ -1373,11 +1363,12 @@ def lfc_ls_files(parser=None, argv=None):
     folder or a subfolder thereof are listed.
 
     :Call:
-        >>> lfc_ls_files()
-        >>> lfc_ls_files(*pats)
+        >>> lfc_ls_files(parser=None, argv=None)
     :Inputs:
-        *pats*: :class:`tuple`\ [:class:`str`]
-            (Optional) list of file name patterns to use
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     :STDOUT:
         Each matching ``*.lfc`` file is printed to a line in STDOUT
     """
@@ -1405,19 +1396,12 @@ def lfc_pull(parser=None, argv=None):
     that are in the current folder or children thereof.
 
     :Call:
-        >>> lfc_pull()
-        >>> lfc_pull(pat1, pat2, ..., quiet=True)
+        >>> lfc_pull(parser=None, argv=None)
     :Inputs:
-        *pat1*: :class:`str`
-            Name of large file or file name pattern
-        *pat2*: :class:`str`
-            Second file name or file name pattern
-        *mode*: {``None``} | ``1`` | ``2``
-            Optionally only pull files of a specified mode
-        *quiet*: {``True``} | ``False``
-            Option to suppress STDOUT for files already up-to-date
-        *f*, *force*: ``True`` | {``False``}
-            Delete uncached working file if present
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCPullParser)
@@ -1441,17 +1425,12 @@ def lfc_purge(parser=None, argv=None):
     that are in the current folder or children thereof.
 
     :Call:
-        >>> lfc_purge()
-        >>> lfc_purge(pat1, pat2, ..., quiet=True)
+        >>> lfc_purge(parser=None, argv=None)
     :Inputs:
-        *pat1*: :class:`str`
-            Name of large file or file name pattern
-        *pat2*: :class:`str`
-            Second file name or file name pattern
-        *mode*: {``None``} | ``1`` | ``2``
-            Optionally only push files of a specified mode
-        *quiet*: {``True``} | ``False``
-            Option to suppress STDOUT for files already up-to-date
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCPurgeParer)
@@ -1475,17 +1454,12 @@ def lfc_push(parser=None, argv=None):
     that are in the current folder or children thereof.
 
     :Call:
-        >>> lfc_push()
-        >>> lfc_push(pat1, pat2, ..., quiet=True)
+        >>> lfc_push(parser=None, argv=None)
     :Inputs:
-        *pat1*: :class:`str`
-            Name of large file or file name pattern
-        *pat2*: :class:`str`
-            Second file name or file name pattern
-        *mode*: {``None``} | ``1`` | ``2``
-            Optionally only push files of a specified mode
-        *quiet*: {``True``} | ``False``
-            Option to suppress STDOUT for files already up-to-date
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCListFilesParser)
@@ -1506,18 +1480,12 @@ def lfc_remote(parser=None, argv=None):
     r"""Show or set URL to an LFC remote cache
 
     :Call:
-        >>> lfc_remote(cmdname)
-        >>> lfc_remote("list")
-        >>> lfc_remote("add", remote, url, **kw)
+        >>> lfc_remote(parser=None, argv=None)
     :Inputs:
-        *cmdname*: ``"list"`` | ``"add"`` | ``"set-url"``
-            Name of LFC action to take
-        *remote*: :class:`str`
-            Name of LFC remote
-        *url*: :class:`str`
-            Path to remote cache (local or SSH)
-        *d*, *default*: ``True`` | {``False``}
-            Set *remote* as the default LFC remote
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Reconstruct a parer
     parser = _parse(parser, argv, LFCRemoteFrontDesk)
@@ -1560,7 +1528,12 @@ def lfc_replace_dvc(parser=None, argv=None):
     (using ``lfc add``) will still use a SHA-256 hash.
 
     :Call:
-        >>> lfc_replace_dvc()
+        >>> lfc_replace_dvc(parser=None, argv=None)
+    :Inputs:
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCReplaceDVCParser)
@@ -1577,14 +1550,12 @@ def lfc_set_mode(parser=None, argv=None):
     r"""Set the mode of one or more LFC files
 
     :Call:
-        >>> lfc_set_mode(*pats, mode=None)
+        >>> lfc_set_mode(parser=None, argv=None)
     :Inputs:
-        *pat1*: :class:`str`
-            Name of large file or file name pattern
-        *pat2*: :class:`str`
-            Second file name or file name pattern
-        *mode*: ``1`` | ``2``
-            Required LFC mode to set for each file matching any *pat*
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCSetModeParser)
@@ -1608,12 +1579,12 @@ def lfc_show(parser=None, argv=None):
     piped from bare repos through STDOUT.
 
     :Call:
-        >>> lfc_show(fname, ref="HEAD")
+        >>> lfc_show(parser=None, argv=None)
     :Inputs:
-        *fname*: :class:`str`
-            Name of original file or large file stub
-        *ref*: {``None``} | :class:`str`
-            Optional git reference (default ``HEAD`` on bare repo)
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
     parser = _parse(parser, argv, LFCShowParser)
