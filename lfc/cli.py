@@ -1518,24 +1518,10 @@ def lfc_remote(parser=None, argv=None):
     parser = _parse(parser, argv, LFCRemoteFrontDesk)
     # Re-parse
     cmdname, subparser = parser.fullparse()
-    # Check for no commands
-    if cmdname is None:
-        print(compile_rst(parser.genr8_help()))
-        return 0
-    # Check if command recognized
-    if cmdname not in LFCRemoteFrontDesk._cmdlist:
-        # Get closest matches
-        close = difflib.get_close_matches(
-            cmdname, LFCRemoteFrontDesk._cmdlist, n=4, cutoff=0.3)
-        # Use all if no matches
-        close = close if close else LFCRemoteFrontDesk._cmdlist
-        # Generate list as text
-        matches = " | ".join(close)
-        # Display them
-        print(f"Unexpected command '{cmdname}'")
-        print(f"Closest matches: {matches}")
-        return IERR_CMD
-    # Check for help
+    # Check for no commands/bad command
+    if _help_frontdesk(cmdname, LFCRemoteFrontDesk):
+        return
+    # Check for sub-command help
     if _help(subparser):
         return
     # Read repo
@@ -1699,23 +1685,9 @@ def main(argv: Optional[list] = None) -> int:
     argv = _get_argv(argv)
     # Identify subcommand
     cmdname, subparser = parser.fullparse(argv)
-    # Check for no commands
-    if cmdname is None:
-        print(compile_rst(parser.genr8_help()))
-        return 0
-    # Check if command recognized
-    if cmdname not in LFCFrontDesk._cmdlist:
-        # Get closest matches
-        close = difflib.get_close_matches(
-            cmdname, LFCFrontDesk._cmdlist, n=4, cutoff=0.3)
-        # Use all if no matches
-        close = close if close else LFCFrontDesk._cmdlist
-        # Generate list as text
-        matches = " | ".join(close)
-        # Display them
-        print(f"Unexpected command '{cmdname}'")
-        print(f"Closest matches: {matches}")
-        return IERR_CMD
+    # Check for top-level help message
+    if _help_frontdesk(cmdname, LFCFrontDesk):
+        return IERR_OK
     # Get function
     func = CMD_DICT[cmdname]
     # Run function
@@ -1741,6 +1713,29 @@ def _help(parser: LFCArgParser) -> bool:
     else:
         # No help
         return False
+
+
+# Print help message for front-desk
+def _help_frontdesk(cmdname: Optional[str], cls: type) -> bool:
+    # Check for null commands
+    if cmdname is None:
+        print(compile_rst(cls().genr8_help()))
+        return True
+    # Check if command was recognized
+    if cmdname not in cls._cmdlist:
+        # Get closest matches
+        close = difflib.get_close_matches(
+            cmdname, cls._cmdlist, n=4, cutoff=0.3)
+        # Use all if no matches
+        close = close if close else cls._cmdlist
+        # Generate list as text
+        matches = " | ".join(close)
+        # Display them
+        print(f"Unexpected '{cls._name}' command '{cmdname}'")
+        print(f"Closest matches: {matches}")
+        return True
+    # No problems
+    return False
 
 
 # Get command-line args, filtering out weird ``winpty`` fixes
