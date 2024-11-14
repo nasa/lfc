@@ -582,6 +582,7 @@ class ArgReader(KwargParser, metaclass=MetaArgReader):
             * 2024-11-11 ``@ddalle``: v1.0
         """
         # Expand CLI list if necessary
+        argv = self.argv if argv is None else argv
         argv = sys.argv if argv is None else argv
         # Parse commands as given
         self.parse(argv)

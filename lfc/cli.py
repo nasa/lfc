@@ -285,9 +285,6 @@ class LFCConfigParser(LFCArgParser):
     # Viable options
     _optlist = (
         "help",
-        "cmdname",
-        "opt",
-        "val",
     )
 
     # Allowed values
@@ -1062,18 +1059,18 @@ IERR_FILE_NOT_FOUND = 128
 def _parse(
         parser: Optional[ArgReader] = None,
         argv: Optional[list] = None,
-        cls: type = LFCArgParser):
+        cls: type = LFCArgParser) -> LFCArgParser:
     # Check for parser
     parser = parser if parser is not None else cls()
-    # Parse
-    a, kw = parser.parse(argv)
-    # Remove __replaced__
-    kw.pop("__replaced__", None)
+    # Set args if necessary
+    if (len(parser.argv) == 0) or (argv is not None):
+        # Parse CLI
+        parser.parse(_get_argv(argv))
     # Output
-    return a, kw
+    return parser
 
 
-def lfc_add(*a, **kw):
+def lfc_add(parser=None, argv=None):
     r"""Calculate metadata for large file(s) and cache them
 
     :Call:
@@ -1088,15 +1085,22 @@ def lfc_add(*a, **kw):
         *mode*: {``1``} | ``2``
             LFC mode for each added file
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCAddParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Check for -2 -> mode=2
     _parse_mode(kw)
     # Add it
     repo.lfc_add(*a, **kw)
 
 
-def lfc_autopull(*a, **kw):
+def lfc_autopull(parser=None, argv=None):
     r"""Pull most recent version of mode-2 (configurable) LFC files
 
     Normally this will pull all mode-2 files, but that can be configured
@@ -1115,8 +1119,15 @@ def lfc_autopull(*a, **kw):
         *quiet*: {``True``} | ``False``
             Option to suppress STDOUT for files already up-to-date
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCAutoPullParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Get mode
     mode = repo.get_lfc_autopull()
     # Settings
@@ -1126,7 +1137,7 @@ def lfc_autopull(*a, **kw):
     repo.lfc_pull(*a, **kw)
 
 
-def lfc_autopush(*a, **kw):
+def lfc_autopush(parser=None, argv=None):
     r"""Push most recent version of mode-2 (configurable) LFC files
 
     Normally this will push all mode-2 files, but that can be configured
@@ -1145,8 +1156,15 @@ def lfc_autopush(*a, **kw):
         *quiet*: {``True``} | ``False``
             Option to suppress STDOUT for files already up-to-date
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCAutoPushParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Get mode
     mode = repo.get_lfc_autopush()
     # Settings
@@ -1156,7 +1174,7 @@ def lfc_autopush(*a, **kw):
     repo.lfc_push(*a, **kw)
 
 
-def lfc_checkout(*a, **kw):
+def lfc_checkout(parser=None, argv=None):
     r"""Check out one or more large files (from local cache)
 
     If no patterns are specified, the target will be all large files
@@ -1173,13 +1191,20 @@ def lfc_checkout(*a, **kw):
         *f*, *force*: ``True`` | {``False``}
             Delete uncached working file if present
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCCheckoutParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Checkout
     repo.lfc_checkout(*a, **kw)
 
 
-def lfc_config(*a, **kw):
+def lfc_config(parser=None, argv=None):
     r"""Print or set an LFC configuration variable
 
     :Call:
@@ -1193,8 +1218,15 @@ def lfc_config(*a, **kw):
         *val*: :class:`object`
             Value to set if *cmdname* is ``"set"``
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCListFilesParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Check command
     if len(a) < 1:
         print("lfc-config got %i arguments; at least 1 required" % len(a))
@@ -1213,7 +1245,7 @@ def lfc_config(*a, **kw):
     func(repo, *a[1:], **kw)
 
 
-def lfc_init(*a, **kw):
+def lfc_init(parser=None, argv=None) -> int:
     r"""Initialize a repo as an LFC repo
 
     This will create (if necessary) the following folders:
@@ -1229,13 +1261,20 @@ def lfc_init(*a, **kw):
     :Call:
         >>> lfc_init()
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCInitParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Push it
     repo.lfc_init(*a, **kw)
 
 
-def lfc_install_hooks(*a, **kw):
+def lfc_install_hooks(parser=None, argv=None):
     r"""Install git-hooks in current LFC repo
 
     This creates the following files relative to the top-level folder
@@ -1250,13 +1289,20 @@ def lfc_install_hooks(*a, **kw):
     :Call:
         >>> lfc_install_hooks()
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCInstallHooksParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Install hooks
     repo.lfc_install_hooks(*a, **kw)
 
 
-def lfc_ls_files(*a, **kw):
+def lfc_ls_files(parser=None, argv=None):
     r"""List files tracked by LFC
 
     If called from a working repository, only files in the current
@@ -1271,8 +1317,15 @@ def lfc_ls_files(*a, **kw):
     :STDOUT:
         Each matching ``*.lfc`` file is printed to a line in STDOUT
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCListFilesParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Check for -2 -> mode=2
     _parse_mode(kw)
     # List files
@@ -1281,7 +1334,7 @@ def lfc_ls_files(*a, **kw):
     print("\n".join(filelist))
 
 
-def lfc_pull(*a, **kw):
+def lfc_pull(parser=None, argv=None):
     r"""Pull (fetch and checkout) one or more large files
 
     If no patterns are specified, the target will be all large files
@@ -1302,15 +1355,22 @@ def lfc_pull(*a, **kw):
         *f*, *force*: ``True`` | {``False``}
             Delete uncached working file if present
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCPullParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Check for -2 -> mode=2
     _parse_mode(kw)
     # Push it
     repo.lfc_pull(*a, **kw)
 
 
-def lfc_purge(*a, **kw):
+def lfc_purge(parser=None, argv=None):
     r"""Purge large files from cache and working files
 
     If no patterns are specified, the target will be all large files
@@ -1329,15 +1389,22 @@ def lfc_purge(*a, **kw):
         *quiet*: {``True``} | ``False``
             Option to suppress STDOUT for files already up-to-date
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCPurgeParer)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Check for -2 -> mode=2
     _parse_mode(kw)
     # Push it
     repo.lfc_purge(*a, **kw)
 
 
-def lfc_push(*a, **kw):
+def lfc_push(parser=None, argv=None):
     r"""Push one or more large files
 
     If no patterns are specified, the target will be all large files
@@ -1356,15 +1423,22 @@ def lfc_push(*a, **kw):
         *quiet*: {``True``} | ``False``
             Option to suppress STDOUT for files already up-to-date
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCListFilesParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Check for -2 -> mode=2
     _parse_mode(kw)
     # Push it
     repo.lfc_push(*a, **kw)
 
 
-def lfc_remote(*a, **kw):
+def lfc_remote(parser=None, argv=None):
     r"""Show or set URL to an LFC remote cache
 
     :Call:
@@ -1382,19 +1456,9 @@ def lfc_remote(*a, **kw):
             Set *remote* as the default LFC remote
     """
     # Reconstruct a parer
-    parser = LFCRemoteFrontDesk()
-    # Get rid of __replaced__
-    kw.pop("__replaced__", None)
-    # Reconstruct parameter sequence
-    param_sequence = [(None, aj) for aj in a[1:]]
-    param_sequence.extend([(k, v) for k, v in kw.items()])
-    # Save inputs
-    parser.prog = "lfc-remote"
-    parser.param_sequence = param_sequence
-    # Reconstruct command line
-    argv = parser.reconstruct()
+    parser = _parse(parser, argv, LFCRemoteFrontDesk)
     # Re-parse
-    cmdname, subparser = parser.fullparse(argv)
+    cmdname, subparser = parser.fullparse()
     # Check for no commands
     if cmdname is None:
         print(compile_rst(parser.genr8_help()))
@@ -1412,20 +1476,21 @@ def lfc_remote(*a, **kw):
         print(f"Unexpected command '{cmdname}'")
         print(f"Closest matches: {matches}")
         return IERR_CMD
-    # Check for help message
-    if subparser.get("help", False):
-        # Display custom help message
-        print(compile_rst(subparser.genr8_help()))
-        return IERR_OK
+    # Check for help
+    if _help(subparser):
+        return
     # Read repo
     repo = LFCRepo()
     # Get function
     func = CMD_REMOTE_DICT.get(cmdname)
+    # Get args
+    a = subparser.argvals
+    kw = subparser.get_kwargs()
     # Run function
-    func(repo, *a[1:], **kw)
+    func(repo, *a, **kw)
 
 
-def lfc_replace_dvc(*a, **kw):
+def lfc_replace_dvc(parser=None, argv=None):
     r"""Replace any DVC settings and file names
 
     This will rename some files and folders:
@@ -1446,13 +1511,20 @@ def lfc_replace_dvc(*a, **kw):
     :Call:
         >>> lfc_replace_dvc()
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCReplaceDVCParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Replace
     repo.lfc_replace_dvc(*a, **kw)
 
 
-def lfc_set_mode(*a, **kw):
+def lfc_set_mode(parser=None, argv=None):
     r"""Set the mode of one or more LFC files
 
     :Call:
@@ -1465,15 +1537,22 @@ def lfc_set_mode(*a, **kw):
         *mode*: ``1`` | ``2``
             Required LFC mode to set for each file matching any *pat*
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCSetModeParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Check for -2 -> mode=2
     _parse_mode(kw)
     # Set mode
     repo.lfc_set_mode(*a, **kw)
 
 
-def lfc_show(*a, **kw):
+def lfc_show(parser=None, argv=None):
     r"""Print contents of a large file to STDOUT, even in bare repo
 
     This function does not decode the bytes so that binary files can be
@@ -1487,8 +1566,15 @@ def lfc_show(*a, **kw):
         *ref*: {``None``} | :class:`str`
             Optional git reference (default ``HEAD`` on bare repo)
     """
+    # Get parser
+    parser = _parse(parser, argv, LFCShowParser)
+    # Check for help
+    if _help(parser):
+        return
     # Read the repo
     repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
     # Check if *a* has exactly one file
     if len(a) != 1:
         print("lfc-show got %i arguments; expected %i" % (len(a), 1))
@@ -1571,18 +1657,11 @@ def main(argv: Optional[list] = None) -> int:
         print(f"Unexpected command '{cmdname}'")
         print(f"Closest matches: {matches}")
         return IERR_CMD
-    # Check for help message
-    if subparser.get("help", False) and subparser._cmdlist is None:
-        # Display custom help message
-        print(compile_rst(subparser.genr8_help()))
-        return IERR_OK
     # Get function
     func = CMD_DICT[cmdname]
     # Run function
     try:
-        a, kw = subparser.parse()
-        kw.pop("__replaced__", None)
-        ierr = func(*a, **kw)
+        ierr = func(subparser)
     except GitutilsError as err:
         print(f"{err.__class__.__name__}:")
         print(f"  {err}")
@@ -1591,6 +1670,18 @@ def main(argv: Optional[list] = None) -> int:
     ierr = IERR_OK if ierr is None else ierr
     # Normal exit
     return ierr
+
+
+# Print help message
+def _help(parser: LFCArgParser) -> bool:
+    # Check for help message
+    if parser.get("help", False) and parser._cmdlist is None:
+        # Print help message
+        print(compile_rst(parser.genr8_help()))
+        return True
+    else:
+        # No help
+        return False
 
 
 # Get command-line args, filtering out weird ``winpty`` fixes
