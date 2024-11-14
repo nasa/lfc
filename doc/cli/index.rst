@@ -23,6 +23,7 @@ commands largely mirror those of `git <https://git-scm.com>`_.
     lfc-ls-files
     lfc-set-mode
     lfc-clone
+    lfc-purge
     lfc-auto-pull
     lfc-auto-push
     lfc-install-hooks

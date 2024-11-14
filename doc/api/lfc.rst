@@ -10,5 +10,4 @@
 
     cli
     lfcrepo
-    lfcclone
     lfcerror
