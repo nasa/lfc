@@ -5,7 +5,7 @@ import os
 # Third-party
 import testutils
 
-from lfc.lfcclone import (
+from lfc.cli import (
     LFCCloneError,
     lfc_clone,
 )
@@ -34,19 +34,19 @@ def test_repo11():
     repodir2 = f"{REPO_NAME}3.git"
     repodir3 = f"{REPO_NAME}3"
     # Clone a bare repo
-    lfc_clone(repodir1, repodir2, bare=True)
+    lfc_clone(argv=['lfc', repodir1, repodir2, "--bare"])
     # Check it
     repo2 = LFCRepo(repodir2)
     assert repo2.bare
     # Fail a clone
     try:
-        lfc_clone("nonsense", repodir3)
+        lfc_clone(argv=['', "nonsense", repodir3])
     except LFCCloneError:
         # Expected failure
         pass
     else:
         raise SystemError(f"Expected 'lfc clone nonsense {repodir3}' to fail")
     # Clone from bare repo
-    lfc_clone(repodir2)
+    lfc_clone(argv=['lfc-clone', repodir2])
     # Now "repo3" should exist
     assert os.path.isdir(repodir3)

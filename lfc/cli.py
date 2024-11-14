@@ -69,6 +69,11 @@ class LFCArgParser(ArgReader):
         "mode": int,
     }
 
+    # Allowed values
+    _optvals = {
+        "mode": (1, 2),
+    }
+
     # Descriptions
     _help_opt = {
         "1": "Limit operations to mode-1 files",
@@ -1519,8 +1524,9 @@ def lfc_remote(parser=None, argv=None):
     # Re-parse
     cmdname, subparser = parser.fullparse()
     # Check for no commands/bad command
-    if _help_frontdesk(cmdname, LFCRemoteFrontDesk):
-        return
+    ierr = _help_frontdesk(cmdname, LFCRemoteFrontDesk)
+    if ierr:
+        return ierr & IERR_CMD
     # Check for sub-command help
     if _help(subparser):
         return
@@ -1563,10 +1569,8 @@ def lfc_replace_dvc(parser=None, argv=None):
         return
     # Read the repo
     repo = LFCRepo()
-    # Get args
-    a, kw = parser.get_args()
     # Replace
-    repo.lfc_replace_dvc(*a, **kw)
+    repo.lfc_replace_dvc()
 
 
 def lfc_set_mode(parser=None, argv=None):
@@ -1686,8 +1690,9 @@ def main(argv: Optional[list] = None) -> int:
     # Identify subcommand
     cmdname, subparser = parser.fullparse(argv)
     # Check for top-level help message
-    if _help_frontdesk(cmdname, LFCFrontDesk):
-        return IERR_OK
+    ierr = _help_frontdesk(cmdname, LFCFrontDesk)
+    if ierr:
+        return ierr & IERR_CMD
     # Get function
     func = CMD_DICT[cmdname]
     # Run function
@@ -1716,11 +1721,11 @@ def _help(parser: LFCArgParser) -> bool:
 
 
 # Print help message for front-desk
-def _help_frontdesk(cmdname: Optional[str], cls: type) -> bool:
+def _help_frontdesk(cmdname: Optional[str], cls: type) -> int:
     # Check for null commands
     if cmdname is None:
         print(compile_rst(cls().genr8_help()))
-        return True
+        return 1
     # Check if command was recognized
     if cmdname not in cls._cmdlist:
         # Get closest matches
@@ -1733,9 +1738,9 @@ def _help_frontdesk(cmdname: Optional[str], cls: type) -> bool:
         # Display them
         print(f"Unexpected '{cls._name}' command '{cmdname}'")
         print(f"Closest matches: {matches}")
-        return True
+        return IERR_CMD
     # No problems
-    return False
+    return 0
 
 
 # Get command-line args, filtering out weird ``winpty`` fixes

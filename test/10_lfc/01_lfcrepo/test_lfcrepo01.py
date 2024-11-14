@@ -3,6 +3,7 @@
 import os
 import shutil
 import socket
+import sys
 from subprocess import call
 
 # Third-party
@@ -54,6 +55,8 @@ OTHER_FILES = [
 # Initialize a repo; test lfc_init, lfc_add, lfc_push
 @testutils.run_sandbox(__file__, copydirs=REPO_NAME)
 def test_repo01():
+    # Reset CLI
+    sys.argv = ["lfc"]
     # Paths to working and bare repo
     sandbox = os.getcwd()
     workrepo = os.path.join(sandbox, REPO_NAME)
@@ -83,21 +86,21 @@ def test_repo01():
     # Should be a .lfc/ folder
     assert os.path.isdir(".lfc")
     # Add a remote
-    lfc_remote("add", "hub", remotecache, d=True)
+    lfc_remote(argv=["lfc", "add", "hub", remotecache, '-d'])
     # Commit it
     repo.commit("Initialize LFC", a=True)
     # Add a file with LFC
-    lfc_add(fname01)
+    lfc_add(argv=["lfc", fname01])
     # Commit first file
     repo.commit("Add LFC file")
     # Make sure cache is present
     os.path.isdir(os.path.join(".lfc", "cache"))
     # Add it again to make sure it handles that situation correctly
-    lfc_add(fname01)
+    lfc_add(argv=["lfc", fname01])
     # Copy the file
     shutil.copy(fname01, fname02)
     # Add the second file to make sure the file doesn't get added twice
-    lfc_add(fname02)
+    lfc_add(argv=["lfc", fname02])
     repo.commit("Add same LFC file with new name")
     # Make sure second stub is present
     assert os.path.isfile(fname02 + ".lfc")
@@ -107,7 +110,7 @@ def test_repo01():
     # Check status of file b4 adding it
     assert not repo._lfc_status(fname03)
     # Add third file
-    lfc_add(fname03)
+    lfc_add(argv=["lfc", fname03])
     assert os.path.isfile(f"{fname03}.lfc")
     repo.commit("Add third LFC file")
     # Manually remove it from the local cache for testing
@@ -161,7 +164,7 @@ def test_repo02():
     assert not os.path.isfile(fname01)
     assert not os.path.isfile(fname02)
     # Pull the LFC stub
-    lfc_pull(fname01)
+    lfc_pull(argv=["lfc", fname01])
     # Now the file should be there
     assert os.path.isfile(fname01)
     # Generic pull
@@ -190,7 +193,7 @@ def test_repo03():
     b1 = open(f1, 'rb').read()
     b2 = open(f2, 'rb').read()
     # Run lfc-show on other file
-    ierr = lfc_show(f"{fname04}.lfc")
+    ierr = lfc_show(argv=["lfc", f"{fname04}.lfc"])
     assert ierr != 0
     # Instantiate repo
     repo = LFCRepo()
@@ -302,7 +305,7 @@ def test_repo04():
     # File should still be there
     assert os.path.isfile(f1)
     # Push the files
-    repo.lfc_push("data")
+    repo.lfc_push(argv=["lfc", "data"])
     # Path to remote cache
     remotecache = repo.get_lfc_remote_url("hub")
     # Check if all the hash files were pushed
@@ -312,7 +315,7 @@ def test_repo04():
         frj = os.path.join(remotecache, fhash[:2], fhash[2:])
         assert os.path.isfile(frj)
     # Purge the file again
-    lfc_purge(f1)
+    lfc_purge(argv=[f1])
     # Now the file should be gone
     assert not os.path.isfile(f1)
     # Try copyfile() with targ
@@ -404,7 +407,7 @@ def test_repo06():
     fname01 = COPY_FILES[1]
     fname02 = OTHER_FILES[1]
     # Checkout all files
-    lfc_checkout(fname01)
+    lfc_checkout(argv=["lfc", fname01])
     # Pull the second file
     repo.lfc_pull(fname02)
     # Get hash
@@ -450,11 +453,10 @@ def test_repo06():
 def test_repo07():
     # Enter repo
     os.chdir(REPO_NAME)
-    kw = {"2": True}
     # File names
     f2 = OTHER_FILES[0]
     # Set a file to mode=2
-    lfc_set_mode(f2, **kw)
+    lfc_set_mode(argv=["lfc", f2, '-2'])
     # Get repo
     repo = LFCRepo()
     # Test mode
@@ -465,7 +467,7 @@ def test_repo07():
     lfc_autopush()
     # Test mode validator
     with pytest.raises(ValueError):
-        lfc_set_mode(f2, mode=3)
+        lfc_set_mode(argv=[f2, '-mode', '3'])
 
 
 # Test lfc-clone
@@ -477,7 +479,7 @@ def test_repo08():
     # File names
     f2 = OTHER_FILES[0]
     # Clone the repo
-    lfc_clone(repo1, repo2)
+    lfc_clone(argv=["lfc", repo1, repo2])
     # Enter new repo
     os.chdir(repo2)
     # File should have pulled

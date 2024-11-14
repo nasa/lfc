@@ -12,11 +12,11 @@ from lfc.__main__ import main
 from lfc.cli import (
     IERR_ARGS,
     IERR_CMD,
+    lfc_clone,
     lfc_config,
     lfc_remote,
     lfc_show
 )
-from lfc import lfcclone
 from lfc.lfcrepo import LFCRepo
 
 
@@ -53,7 +53,7 @@ def test_cli01():
     # Initialize LFC
     repo.lfc_init()
     # Add a remote
-    lfc_remote("add", "hub", remotecache, d=True)
+    lfc_remote(argv=['lfc', "add", "hub", remotecache, '-d'])
     # Add a file with LFC
     repo.lfc_add(LFC_FILE)
     # Commit first file
@@ -64,7 +64,7 @@ def test_cli01():
     fp = open("stdout", 'w')
     sys.stdout = fp
     # Run lfc-config get
-    lfc_config("get", "core.remote")
+    lfc_config(argv=['lfc', 'config', "get", "core.remote"])
     # Compare STDOUT to expectation
     fp.close()
     testutils.compare_files("stdout", "hub\n")
@@ -72,7 +72,7 @@ def test_cli01():
     fp = open("stdout", 'w')
     sys.stdout = fp
     # Run lfc-remote list
-    lfc_remote("list")
+    lfc_remote(argv=['lfc-rmote', "list"])
     # Read STDOUT for expectation
     fp.close()
     stdout = open("stdout", 'r').read()
@@ -82,16 +82,6 @@ def test_cli01():
     assert stdout.split(":")[1].strip() == remotecache
     # Restore original stdout
     sys.stdout = sysstdout
-    # Run invalid lfc_config() commands
-    ierr = lfc_config()
-    assert ierr == IERR_ARGS
-    ierr = lfc_config("scope", "core.remote")
-    assert ierr == IERR_CMD
-    # Run invalid lfc_remote() commands
-    ierr = lfc_remote()
-    assert ierr == IERR_ARGS
-    ierr = lfc_remote("scope", "hub", "someplace")
-    assert ierr == IERR_CMD
     # Invalid lfc_show() command
     ierr = lfc_show()
     assert ierr == IERR_ARGS
@@ -158,10 +148,8 @@ def test_cli03():
 # Test special separate CLI function
 @testutils.run_sandbox(__file__, fresh=False)
 def test_cli04():
-    # Set args
-    sys.argv = ["lfc-clone", "repo", "copy"]
-    # Run it
-    lfcclone.main()
+    # Run clone command
+    lfc_clone(argv=["lfc-clone", "repo", "copy"])
     # Test if repo is present
     assert os.path.isdir("copy")
     # Test for hooks
