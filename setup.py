@@ -24,7 +24,7 @@ setup(
     entry_points={
         "console_scripts": [
             "lfc=lfc.cli:main",
-            "git-lfc-clone=lfc.lfcclone:main",
+            "lfc-clone=lfc.cli:lfc_clone",
         ]
     },
     version="1.1.1")

@@ -21,17 +21,18 @@ programmers as well.
 # Standard library
 import difflib
 import os
+import posixpath
 import re
 import shutil
 import sys
 from typing import Optional
 
 # Local imports
-from .lfcclone import lfc_clone
-from .lfcerror import GitutilsError
+from .lfcerror import GitutilsError, LFCCloneError
 from .lfcrepo import LFCRepo
 from ._vendor.argread import ArgReader
 from ._vendor.argread.clitext import compile_rst
+from ._vendor.gitutils._vendor import shellutils
 
 
 # Regular expression for "pfe;" or other messed-up remote paths
@@ -229,7 +230,7 @@ class LFCCheckoutParser(LFCArgParser):
 
 
 # Special parser for lfc-clone
-class LFCCloneParser(LFCAddParser):
+class LFCCloneParser(LFCArgParser):
     # No attributes
     __slots__ = ()
 
@@ -240,8 +241,6 @@ class LFCCloneParser(LFCAddParser):
     _optlist = (
         "help",
         "bare",
-        "in_repo",
-        "out_repo",
     )
 
     # Positional parameters
@@ -1202,6 +1201,66 @@ def lfc_checkout(parser=None, argv=None):
     a, kw = parser.get_args()
     # Checkout
     repo.lfc_checkout(*a, **kw)
+
+
+def lfc_clone(parser=None, argv=None):
+    r"""Clone a repo (using git) and pull all mode-2 LFC files
+
+    :Call:
+        >>> ierr = lfc_clone(in_repo, bare=False)
+        >>> ierr = lfc_clone(in_repo, out_repo, bare=False)
+    :Inputs:
+        *in_repo*: :class:`str`
+            URL to repo to clone
+        *out_repo*: {``None``} | :class:`str`
+            Explicit name of created repo; defaults to basename of
+            *in_repo*
+        *bare*: ``True`` | {``False``}
+            Whether new repo should be a bare repo
+    :Outputs:
+        *ierr*: :class:`int`
+            Return code
+    """
+    # Get parser
+    parser = _parse(parser, argv, LFCCloneParser)
+    # Check for help
+    if _help(parser):
+        return
+    # Get args
+    a, kw = parser.get_args()
+    # Create nominal command
+    cmd = ["git", "clone", *a]
+    # Check for --bare option
+    if kw.pop("bare", False):
+        cmd.append("--bare")
+    # Clone the repo using git
+    ierr = shellutils.call(cmd, **kw)
+    # Check for errors
+    if ierr:
+        raise LFCCloneError(f"git-clone failed with status {ierr}")
+    # Get name of repo
+    repo_name = posixpath.basename(os.path.basename(a[-1]))
+    # Check if we should remove .git: ``git clone repo.git`` -> repo
+    if repo_name.endswith(".git") and len(a) == 1:
+        # Cloned bare repo -> working repo
+        repo_name = repo_name[:-4]
+    # Enter the repo
+    fpwd = os.getcwd()
+    os.chdir(repo_name)
+    # Instantiate
+    repo = LFCRepo()
+    # Exit if bare
+    if repo.bare:
+        os.chdir(fpwd)
+        return 0
+    # Install hooks
+    repo.lfc_install_hooks()
+    # Pull all mode-2 files
+    repo.lfc_pull(mode=2)
+    # Return to original location
+    os.chdir(fpwd)
+    # Return code
+    return 0
 
 
 def lfc_config(parser=None, argv=None):
