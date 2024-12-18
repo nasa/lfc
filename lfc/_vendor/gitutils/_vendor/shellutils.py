@@ -327,7 +327,7 @@ class SSHPortal(object):
         while True:
             # Get local and remote sizes
             size_l = self._getsize_l(flocal)
-            size_r = self._getsize_r(fremote)
+            size_r = max(1, self._getsize_r(fremote))
             # Calculate fraciton
             prog_fraction = (100 * size_l) // size_r
             # Progress indicator
@@ -354,7 +354,7 @@ class SSHPortal(object):
         # Progress indicator
         while True:
             # Get local and remote sizes
-            size_l = self._getsize_l(flocal)
+            size_l = max(1, self._getsize_l(flocal))
             size_r = self._getsize_r(fremote)
             # Calculate fraciton
             prog_fraction = (100 * size_r) // size_l

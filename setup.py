@@ -42,5 +42,5 @@ setup(
             "lfc-show=lfc.cli:lfc_show",
         ]
     },
-    version="1.1.1")
+    version="1.1.2")
 
