@@ -917,6 +917,11 @@ class LFCShowParser(LFCArgParser):
         "ref",
     )
 
+    # Alternative alternatives
+    _optmap = {
+        "r": "ref",
+    }
+
     # Positional parameters
     _arglist = (
         "fname",
