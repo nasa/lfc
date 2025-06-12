@@ -1,0 +1,26 @@
+before_script:
+    - export PATH=$PATH:~/.local/bin
+
+
+stages:
+    - run
+    - deploy
+
+pages:
+    stage: deploy
+    script:
+    - cd doc
+    - make html
+    - mv _build/html ../public
+    artifacts:
+        paths:
+        - public
+    only:
+    - main
+
+install:
+    stage: run
+    script:
+    - python3 -m pip install --user git+file://$PWD
+    only:
+    - main
