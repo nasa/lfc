@@ -1276,6 +1276,7 @@ def lfc_config(parser=None, argv=None):
     repo = LFCRepo()
     # Get args
     a, kw = parser.get_args()
+    kw.pop("__replaced__", None)
     # Check command
     if len(a) < 1:
         print("lfc-config got %i arguments; at least 1 required" % len(a))
