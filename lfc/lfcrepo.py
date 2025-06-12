@@ -708,7 +708,7 @@ class LFCRepo(GitRepo):
         return IERR_OK
 
    # --- LFC checkout --
-    def lfc_checkout(self, fname: str, *fnames, **kw):
+    def lfc_checkout(self, *fnames, **kw):
         r"""Checkout one or more large files from current ``.lfc`` stub
 
         :Call:
@@ -722,9 +722,10 @@ class LFCRepo(GitRepo):
                 Delete uncached working file if present
         :Versions:
             * 2023-10-24 ``@ddalle``: v1.0
+            * 2025-06-12 ``@ddalle``: v1.1; remove req for 1+ fname
         """
         # Expand list of files
-        lfcfiles = self.genr8_lfc_glob(fname, *fnames)
+        lfcfiles = self.genr8_lfc_glob(*fnames)
         # Overwrite option
         force = kw.get("f", kw.get("force", False))
         # Loop through files
