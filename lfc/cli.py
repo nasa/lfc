@@ -594,7 +594,7 @@ class LFCPullParser(LFCArgParser):
 
 
 # Special parser for lfc-purge
-class LFCPurgeParer(LFCArgParser):
+class LFCPurgeParser(LFCArgParser):
     # No attributes
     __slots__ = ()
 
@@ -1010,6 +1010,37 @@ class LFCShowParser(LFCArgParser):
     """
 
 
+# Special parser for lfc-purge
+class LFCUncacheParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Command name
+    _name = "lfc-purge"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "force",
+        "quiet",
+    )
+
+    # Positional parameters
+    _arglist = (
+        "file1",
+        "file2",
+    )
+
+    # Primary purpose of command
+    _help_title = "Remove large file(s) from cache if working copy present"
+
+    # Longer description
+    _help_description = """
+    \rThis function clears large file(s) from a cache if working copies
+    \rof those files are present.
+    """
+
+
 # Front-desk for LFC, to decide which subcommand
 class LFCFrontDesk(ArgReader):
     # No attributes
@@ -1034,12 +1065,14 @@ class LFCFrontDesk(ArgReader):
         "replace-dvc",
         "set-mode",
         "show",
+        "uncache",
     )
 
     # Command aliases
     _cmdmap = {
         "autopull": "auto-pull",
         "autopush": "auto-push",
+        "decache": "uncache",
         "list-files": "ls-files",
         "pub": "publish",
     }
@@ -1057,12 +1090,13 @@ class LFCFrontDesk(ArgReader):
         "ls-files": LFCListFilesParser,
         "publish": LFCPublishParser,
         "pull": LFCPullParser,
-        "purge": LFCPurgeParer,
+        "purge": LFCPurgeParser,
         "push": LFCPushParser,
         "remote": LFCRemoteFrontDesk,
         "replace-dvc": LFCReplaceDVCParser,
         "set-mode": LFCSetModeParser,
         "show": LFCShowParser,
+        "uncache": LFCUncacheParser,
         "_default_": LFCArgParser,
     }
 
@@ -1540,7 +1574,7 @@ def lfc_purge(parser=None, argv=None):
             Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
-    parser = _parse(parser, argv, LFCPurgeParer)
+    parser = _parse(parser, argv, LFCPurgeParser)
     # Check for help
     if _help(parser):
         return
@@ -1569,7 +1603,7 @@ def lfc_push(parser=None, argv=None):
             Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
-    parser = _parse(parser, argv, LFCListFilesParser)
+    parser = _parse(parser, argv, LFCPushParser)
     # Check for help
     if _help(parser):
         return
@@ -1715,6 +1749,35 @@ def lfc_show(parser=None, argv=None):
     os.write(sys.stdout.fileno(), contents)
 
 
+def lfc_uncache(parser=None, argv=None):
+    r"""Push one or more large files
+
+    If no patterns are specified, the target will be all large files
+    that are in the current folder or children thereof.
+
+    :Call:
+        >>> lfc_push(parser=None, argv=None)
+    :Inputs:
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
+    """
+    # Get parser
+    parser = _parse(parser, argv, LFCUncacheParser)
+    # Check for help
+    if _help(parser):
+        return
+    # Read the repo
+    repo = LFCRepo()
+    # Get args
+    a, kw = parser.parse(argv)
+    # Check for -2 -> mode=2
+    _parse_mode(kw)
+    # Push it
+    repo.lfc_uncache(*a, **kw)
+
+
 def _parse_mode(kw):
     # Check for -2 or -1
     for val in ("1", "2"):
@@ -1743,6 +1806,7 @@ CMD_DICT = {
     "replace-dvc": lfc_replace_dvc,
     "set-mode": lfc_set_mode,
     "show": lfc_show,
+    "uncache": lfc_uncache,
 }
 
 

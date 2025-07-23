@@ -33,6 +33,7 @@ setup(
             "lfc-init=lfc.cli:lfc_init",
             "lfc-install-hooks=lfc.cli:lfc_install_hooks",
             "lfc-ls-files=lfc.cli:lfc_ls_files",
+            "lfc-publish=lfc.cli:lfc_publish",
             "lfc-pull=lfc.cli:lfc_pull",
             "lfc-purge=lfc.cli:lfc_purge",
             "lfc-push=lfc.cli:lfc_push",
@@ -40,7 +41,8 @@ setup(
             "lfc-replace-dev=lfc.cli:lfc_replace_dvc",
             "lfc-set-mode=lfc.cli:lfc_set_mode",
             "lfc-show=lfc.cli:lfc_show",
+            "lfc-uncache=lfc.cli:lfc_uncache",
         ]
     },
-    version="1.1.5")
+    version="1.2.0")
 

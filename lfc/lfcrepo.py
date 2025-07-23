@@ -986,7 +986,7 @@ class LFCRepo(GitRepo):
 
    # --- LFC uncache ---
     def lfc_uncache(self, *fnames, **kw):
-        r"""Purge one or more large files from working copy and cache
+        r"""Delete file from cache if working file present
 
         :Call:
             >>> repo.lfc_purge(*fnames, **kw)
@@ -995,58 +995,28 @@ class LFCRepo(GitRepo):
                 Interface to git repository
             *fnames*: :class:`tuple`\ [:class:`str`]
                 Names or wildcard patterns of files
-            *remote*: {``None``} | :class:`str`
-                Name of remote to check
-            *force*: ``True`` | {``False``}
-                Option to purge w/o checking *remote*
             *quiet*: ``True`` | {``False``}
                 Option to suppress STDOUT status messages
         :Versions:
-            * 2024-10-12 ``@ddalle``: v1.0
+            * 2025-07-22 ``@ddalle``: v1.0
         """
-        # Select mode to use
-        mode = kw.get("mode")
-        _valid8n_mode(mode)
-        # Get remote
-        remote = kw.get("remote")
+        # Get verbosity
+        quiet = kw.get("quiet", False)
         # Expand file list
-        lfcfiles = self.genr8_lfc_glob(*fnames, mode=mode)
+        lfcfiles = self.genr8_lfc_glob(*fnames)
         # Loop through files
         for flfc in lfcfiles:
             # Push
-            self._lfc_purge(flfc, remote)
+            self._lfc_uncache(flfc, quiet)
 
-    def _lfc_uncache(
-            self,
-            fname: str,
-            remote: Optional[str] = None,
-            quiet: bool = False,
-            force: bool = False):
+    def _lfc_uncache(self, fname: str, quiet: bool = False):
         # Strip .lfc if necessary
         flfc = self.genr8_lfc_filename(fname)
         fwork = self.genr8_lfc_ofilename(fname)
-        # Resolve remote
-        remote = self.resolve_lfc_remote_name(remote)
         # Get cache file name
         fcache = self._cachefile(flfc)
         # Truncate working file if long
-        f1 = self._trunc8_fname(fwork, 20 + len(remote))
-        # Check if we should do checks before deleting
-        if not force:
-            # Check if file is present on remote
-            if not self.check_remote_cache(flfc, remote):
-                # Status update
-                if not quiet:
-                    # Print status
-                    print(f"'{f1}' not in remote '{remote}'")
-                return
-        # Test if working file exists
-        if os.path.isfile(fwork) and self._lfc_status(fwork, cache=False):
-            # Status update
-            if not quiet:
-                print(f"rm '{f1}'")
-            # Remove the working file
-            os.remove(fwork)
+        f1 = self._trunc8_fname(fwork, 22)
         # Test if file exists in cache
         if os.path.isfile(fcache):
             # Get path to cache

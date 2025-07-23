@@ -26,7 +26,8 @@ from lfc.cli import (
     lfc_remote,
     lfc_replace_dvc,
     lfc_set_mode,
-    lfc_show
+    lfc_show,
+    lfc_uncache
 )
 from lfc.lfcrepo import (
     GitutilsFileNotFoundError,
@@ -155,6 +156,11 @@ def test_repo01():
     # Make sure the file was pushed
     assert os.path.isfile(fhash_local)
     assert os.path.isfile(fhash_remote)
+    # Uncache
+    lfc_uncache(argv=["lfc", fname04])
+    # Make sure the local cache was cleared
+    assert os.path.isfile(fname04)
+    assert not os.path.isfile(fhash_local)
 
 
 # Clone a repo; test lfc-pull
