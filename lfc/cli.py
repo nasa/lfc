@@ -1395,6 +1395,35 @@ def lfc_ls_files(parser=None, argv=None):
     print("\n".join(filelist))
 
 
+def lfc_publish(parser=None, argv=None):
+    r"""Publish (add and push) one or more large files
+
+    If no patterns are specified, the target will be all large files
+    that are in the current folder or children thereof.
+
+    :Call:
+        >>> lfc_pull(parser=None, argv=None)
+    :Inputs:
+        *parser*: {``None``} | :class:`LFCArgPraser`
+            Parser instance with pre-parsed CLI args
+        *argv*: {``None``} | :class:`list`\ [:class:`str`]
+            Optional list of CLI args to use (or use ``sys.argv``)
+    """
+    # Get parser
+    parser = _parse(parser, argv, LFCPullParser)
+    # Check for help
+    if _help(parser):
+        return
+    # Read the repo
+    repo = LFCRepo()
+    # Get args
+    a, kw = parser.get_args()
+    # Check for -2 -> mode=2
+    _parse_mode(kw)
+    # Push it
+    repo.lfc_pull(*a, **kw)
+
+
 def lfc_pull(parser=None, argv=None):
     r"""Pull (fetch and checkout) one or more large files
 

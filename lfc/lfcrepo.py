@@ -295,6 +295,45 @@ class LFCRepo(GitRepo):
         # Reset it
         os.chmod(fhook, fmod)
 
+   # --- LFC publish ---
+    def lfc_publish(self, *fnames, **kw):
+        r"""Add and push one or more large files to remote cache
+
+        :Call:
+            >>> repo.lfc_publish(*fnames, **kw)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *fnames*: :class:`tuple`\ [:class:`str`]
+                Names or wildcard patterns of files
+            *mode*: {``None``} | ``1`` | ``2``
+                LFC file mode:
+            *f*, *force*: ``True`` | {``False``}
+                Delete uncached working file if present
+        :Versions:
+            * 2025-07-22 ``@ddalle``: v1.0
+        """
+        # Get remote
+        remote = kw.get("remote", kw.get("r"))
+        # Get mode
+        mode = kw.get("mode")
+        # Verbosity setting
+        quiet = kw.get("quiet", kw.get("q", False))
+        # Overwrite setting
+        force = kw.get("force", kw.get("f", False))
+        # Expand list of files
+        lfcfiles = self.genr8_lfc_glob(*fnames, mode=mode)
+        # Loop through matches
+        for flfc in lfcfiles:
+            # Pull
+            self._lfc_publish(flfc, remote, quiet, force)
+
+    def _lfc_publish(self, fname: str, remote=None, quiet=False, force=False):
+        # Add file
+        self._lfc_add(fname)
+        # PUsh it
+        self._lfc_push(fname, remote, quiet, force)
+
    # --- LFC add ---
     def lfc_add(self, *fnames, **kw):
         r"""Add one or more large files
