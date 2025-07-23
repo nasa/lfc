@@ -433,6 +433,74 @@ class LFCListFilesParser(LFCArgParser):
     }
 
 
+# Special parser for lfc-push
+class LFCPublishParser(LFCArgParser):
+    # No attributes
+    __slots__ = ()
+
+    # Name of command
+    _name = "lfc-publish"
+
+    # Viable options
+    _optlist = (
+        "help",
+        "remote",
+        "mode",
+        "1",
+        "2",
+        "quiet",
+    )
+
+    # Positional parameters
+    _arglist = (
+        "pat1",
+        "pat2",
+    )
+
+    # Primary purpose of command
+    _help_title = "Add and push one or more large files to remote cache"
+
+    # Longer description
+    _help_description = """
+    \rThis adds and pushes files, see ``lfc-add`` and ``lfc-push``.
+    """
+
+    # Custom option description
+    _help_opt = {
+        "pat1": "First file name or pattern for files to push",
+        "pat2": "Second file name or pattern for files to push",
+    }
+
+    # Even more help
+    _help_extra = """
+    \r:Examples:
+    This will push the files ``myfile.dat`` and ``otherfile.dat`` if the
+    files ``myfile.dat.lfc`` and ``otherfile.dat.lfc`` exist and are
+    present in the local cache:
+
+        .. code-block:: console
+
+            $ lfc publish myfile.dat otherfile.dat
+
+    Note that
+
+        .. code-block:: console
+
+            $ lfc publish myfile.dat.lfc otherfile.dat.lfc
+
+    is equivalent. Suppose the hash for this file is ``'a4b3f7'``. Then
+    it will look for the file ``a4/b3f7`` in the local cache  and then
+    copy it to the remote cache with the same file name.
+
+    This will push all files starting with ``a`` with mode=2 in the
+    current folder or any child thereof
+
+        .. code-block:: console
+
+            $ lfc publish "a*.lfc" -2
+    """
+
+
 # Special parser for lfc-pull
 class LFCPullParser(LFCArgParser):
     # No attributes
@@ -958,6 +1026,7 @@ class LFCFrontDesk(ArgReader):
         "init",
         "install-hooks",
         "ls-files",
+        "publish",
         "pull",
         "push",
         "purge",
@@ -972,6 +1041,7 @@ class LFCFrontDesk(ArgReader):
         "autopull": "auto-pull",
         "autopush": "auto-push",
         "list-files": "ls-files",
+        "pub": "publish",
     }
 
     # Sub-parsers for each command
@@ -985,6 +1055,7 @@ class LFCFrontDesk(ArgReader):
         "init": LFCInitParser,
         "install-hooks": LFCInstallHooksParser,
         "ls-files": LFCListFilesParser,
+        "publish": LFCPublishParser,
         "pull": LFCPullParser,
         "purge": LFCPurgeParer,
         "push": LFCPushParser,
@@ -1031,6 +1102,7 @@ class LFCFrontDesk(ArgReader):
         "init": "Initialize LFC for current git repo",
         "install-hooks": "Create git hooks for autopll and autopush",
         "ls-files": "List some or all ``.lfc`` files",
+        "publish": "Add and push one or more large files",
         "pull": "Pull one or more large files",
         "push": "Push one or more large files",
         "remote": "View or set an LFC remote cache",
@@ -1398,11 +1470,11 @@ def lfc_ls_files(parser=None, argv=None):
 def lfc_publish(parser=None, argv=None):
     r"""Publish (add and push) one or more large files
 
-    If no patterns are specified, the target will be all large files
-    that are in the current folder or children thereof.
+    If no patterns are specified, this function will take no action,
+    unlike :func:`lfc_push`.
 
     :Call:
-        >>> lfc_pull(parser=None, argv=None)
+        >>> lfc_publish(parser=None, argv=None)
     :Inputs:
         *parser*: {``None``} | :class:`LFCArgPraser`
             Parser instance with pre-parsed CLI args
@@ -1410,7 +1482,7 @@ def lfc_publish(parser=None, argv=None):
             Optional list of CLI args to use (or use ``sys.argv``)
     """
     # Get parser
-    parser = _parse(parser, argv, LFCPullParser)
+    parser = _parse(parser, argv, LFCPublishParser)
     # Check for help
     if _help(parser):
         return
@@ -1421,7 +1493,7 @@ def lfc_publish(parser=None, argv=None):
     # Check for -2 -> mode=2
     _parse_mode(kw)
     # Push it
-    repo.lfc_pull(*a, **kw)
+    repo.lfc_publish(*a, **kw)
 
 
 def lfc_pull(parser=None, argv=None):
@@ -1663,6 +1735,7 @@ CMD_DICT = {
     "init": lfc_init,
     "install-hooks": lfc_install_hooks,
     "ls-files": lfc_ls_files,
+    "publish": lfc_publish,
     "pull": lfc_pull,
     "push": lfc_push,
     "purge": lfc_purge,
