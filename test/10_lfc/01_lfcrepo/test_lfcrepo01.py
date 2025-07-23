@@ -19,6 +19,7 @@ from lfc.cli import (
     lfc_clone,
     lfc_init,
     lfc_install_hooks,
+    lfc_publish,
     lfc_pull,
     lfc_purge,
     lfc_push,
@@ -77,6 +78,7 @@ def test_repo01():
     fname01 = COPY_FILES[1]
     fname02 = OTHER_FILES[0]
     fname03 = OTHER_FILES[1]
+    fname04 = OTHER_FILES[2]
     # Add a file
     repo.add(fname00)
     # Issue a commit
@@ -105,8 +107,9 @@ def test_repo01():
     # Make sure second stub is present
     assert os.path.isfile(fname02 + ".lfc")
     # Create and add third binary file
-    with open(fname03, 'wb') as fp:
-        fp.write(os.urandom(128))
+    for _f in (fname03, fname04):
+        with open(_f, 'wb') as fp:
+            fp.write(os.urandom(128))
     # Check status of file b4 adding it
     assert not repo._lfc_status(fname03)
     # Add third file
@@ -141,6 +144,17 @@ def test_repo01():
     # Use check_cache() interface
     assert repo.check_cache(fname01)
     assert repo.check_cache(fname02)
+    # Add+push
+    lfc_publish(argv=["lfc", fname04])
+    # Get the hash
+    hash = repo.get_lfc_hash(fname04)
+    # Path to hash
+    fhash = os.path.join(hash[:2], hash[2:])
+    fhash_local = os.path.join(repo.get_cachedir(), fhash)
+    fhash_remote = os.path.join(remotecache, fhash)
+    # Make sure the file was pushed
+    assert os.path.isfile(fhash_local)
+    assert os.path.isfile(fhash_remote)
 
 
 # Clone a repo; test lfc-pull

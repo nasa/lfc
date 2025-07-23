@@ -308,31 +308,33 @@ class LFCRepo(GitRepo):
                 Names or wildcard patterns of files
             *mode*: {``None``} | ``1`` | ``2``
                 LFC file mode:
-            *f*, *force*: ``True`` | {``False``}
-                Delete uncached working file if present
         :Versions:
             * 2025-07-22 ``@ddalle``: v1.0
         """
         # Get remote
         remote = kw.get("remote", kw.get("r"))
-        # Get mode
-        mode = kw.get("mode")
         # Verbosity setting
         quiet = kw.get("quiet", kw.get("q", False))
-        # Overwrite setting
-        force = kw.get("force", kw.get("f", False))
-        # Expand list of files
-        lfcfiles = self.genr8_lfc_glob(*fnames, mode=mode)
-        # Loop through matches
-        for flfc in lfcfiles:
-            # Pull
-            self._lfc_publish(flfc, remote, quiet, force)
+        # Get mode
+        mode = kw.get("mode", 1)
+        # Loop through files
+        for fname in fnames:
+            # Expand
+            fglob = glob.glob(fname)
+            # Loop through matches
+            for fj in fglob:
+                self._lfc_publish(fj, mode, remote, quiet)
 
-    def _lfc_publish(self, fname: str, remote=None, quiet=False, force=False):
+    def _lfc_publish(
+            self,
+            fname: str,
+            mode: int = 1,
+            remote: bool = None,
+            quiet: bool = False):
         # Add file
-        self._lfc_add(fname)
+        self._lfc_add(fname, mode=mode)
         # PUsh it
-        self._lfc_push(fname, remote, quiet, force)
+        self._lfc_push(fname, remote, quiet)
 
    # --- LFC add ---
     def lfc_add(self, *fnames, **kw):
@@ -981,6 +983,81 @@ class LFCRepo(GitRepo):
         frel = posixpath.join(fhash[:2], fhash[2:])
         # Check if remote cache contains file
         return portal.ssh.isfile(frel)
+
+   # --- LFC uncache ---
+    def lfc_uncache(self, *fnames, **kw):
+        r"""Purge one or more large files from working copy and cache
+
+        :Call:
+            >>> repo.lfc_purge(*fnames, **kw)
+        :Inputs:
+            *repo*: :class:`GitRepo`
+                Interface to git repository
+            *fnames*: :class:`tuple`\ [:class:`str`]
+                Names or wildcard patterns of files
+            *remote*: {``None``} | :class:`str`
+                Name of remote to check
+            *force*: ``True`` | {``False``}
+                Option to purge w/o checking *remote*
+            *quiet*: ``True`` | {``False``}
+                Option to suppress STDOUT status messages
+        :Versions:
+            * 2024-10-12 ``@ddalle``: v1.0
+        """
+        # Select mode to use
+        mode = kw.get("mode")
+        _valid8n_mode(mode)
+        # Get remote
+        remote = kw.get("remote")
+        # Expand file list
+        lfcfiles = self.genr8_lfc_glob(*fnames, mode=mode)
+        # Loop through files
+        for flfc in lfcfiles:
+            # Push
+            self._lfc_purge(flfc, remote)
+
+    def _lfc_uncache(
+            self,
+            fname: str,
+            remote: Optional[str] = None,
+            quiet: bool = False,
+            force: bool = False):
+        # Strip .lfc if necessary
+        flfc = self.genr8_lfc_filename(fname)
+        fwork = self.genr8_lfc_ofilename(fname)
+        # Resolve remote
+        remote = self.resolve_lfc_remote_name(remote)
+        # Get cache file name
+        fcache = self._cachefile(flfc)
+        # Truncate working file if long
+        f1 = self._trunc8_fname(fwork, 20 + len(remote))
+        # Check if we should do checks before deleting
+        if not force:
+            # Check if file is present on remote
+            if not self.check_remote_cache(flfc, remote):
+                # Status update
+                if not quiet:
+                    # Print status
+                    print(f"'{f1}' not in remote '{remote}'")
+                return
+        # Test if working file exists
+        if os.path.isfile(fwork) and self._lfc_status(fwork, cache=False):
+            # Status update
+            if not quiet:
+                print(f"rm '{f1}'")
+            # Remove the working file
+            os.remove(fwork)
+        # Test if file exists in cache
+        if os.path.isfile(fcache):
+            # Get path to cache
+            cachedir = self.get_cachedir()
+            frel = os.path.relpath(fcache, cachedir)
+            # Status update
+            if not quiet:
+                f2 = f"{frel[:9]}..."
+                print(f"rm '{f2}' ({f1})")
+            # Remove the file
+            os.remove(fcache)
 
    # --- LFC show ---
     def lfc_show(self, fname: str, ref=None, **kw):
