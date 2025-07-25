@@ -307,14 +307,34 @@ class LFCRepo(GitRepo):
             *fnames*: :class:`tuple`\ [:class:`str`]
                 Names or wildcard patterns of files
             *mode*: {``None``} | ``1`` | ``2``
-                LFC file mode
+                LFC file mode:
         :Versions:
             * 2025-07-22 ``@ddalle``: v1.0
         """
-        # Add files
-        self.lfc_add(*fnames, **kw)
-        # Push the results
-        self.lfc_push(*fnames, **kw)
+        # Get remote
+        remote = kw.get("remote", kw.get("r"))
+        # Verbosity setting
+        quiet = kw.get("quiet", kw.get("q", False))
+        # Get mode
+        mode = kw.get("mode", 1)
+        # Loop through files
+        for fname in fnames:
+            # Expand
+            fglob = glob.glob(fname)
+            # Loop through matches
+            for fj in fglob:
+                self._lfc_publish(fj, mode, remote, quiet)
+
+    def _lfc_publish(
+            self,
+            fname: str,
+            mode: int = 1,
+            remote: bool = None,
+            quiet: bool = False):
+        # Add file
+        self._lfc_add(fname, mode=mode)
+        # PUsh it
+        self._lfc_push(fname, remote, quiet)
 
    # --- LFC add ---
     def lfc_add(self, *fnames, **kw):
