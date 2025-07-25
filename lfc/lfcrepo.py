@@ -2122,7 +2122,7 @@ def _merge_caches(dvccache: str, lfccache: str):
             os.rename(dvcpart, lfcpart)
 
 
-def _valid8n_mode(mode=None):
+def _valid8n_mode(mode: Optional[int] = None):
     # Allow mode=None
     if mode is None:
         return
@@ -2130,13 +2130,13 @@ def _valid8n_mode(mode=None):
     _valid8_mode(mode)
 
 
-def _valid8_mode(mode=1):
+def _valid8_mode(mode: int = 1):
     # Check type
     assert_isinstance(mode, int, "LFC file mode")
     # Check value
-    if mode not in (1, 2):
+    if mode not in (1, 2, 3):
         raise LFCValueError(
-            f"Unknown LFC file mode {mode}; accepted values are: 1 | 2")
+            f"Unknown LFC file mode {mode}; accepted values are: 1 | 2 | 3")
 
 
 def copyfile(fsrc: str, ftarg: str):
