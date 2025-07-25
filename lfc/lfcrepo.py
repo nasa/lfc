@@ -17,6 +17,7 @@ import posixpath
 import re
 import shutil
 import socket
+import stat
 import sys
 import time
 from configparser import ConfigParser
@@ -461,6 +462,13 @@ class LFCRepo(GitRepo):
         if os.path.isfile(fcache):
             # Status update
             print(f"File in cache: {fname8}")
+        elif mode == 3:
+            # Move file into cache
+            os.rename(fname, fcache)
+            # Create a link
+            os.symlink(fcache, fname)
+            # Make cache file read-only
+            set_readonly(fcache)
         else:
             # Copy file into cache
             copyfile(fname, fcache)
@@ -782,6 +790,8 @@ class LFCRepo(GitRepo):
         flfc = self.genr8_lfc_filename(fname)
         # Get info
         lfcinfo = self.read_lfc_file(flfc)
+        # Get file mode
+        mode = self.read_lfc_mode(fname)
         # Unpack hash from .lfc hook
         fhash_sha256 = lfcinfo.get("sha256")
         fhash = lfcinfo.get("sha256", lfcinfo.get("md5"))
@@ -802,7 +812,7 @@ class LFCRepo(GitRepo):
         if up_to_date:
             return
         # Check for existing file that's not up-to-date
-        if os.path.isfile(fwork):
+        if os.path.isfile(fwork) or os.path.islink(fwork):
             # Calculate hash of existing file
             try:
                 hash1 = self.genr8_hash(fwork)
@@ -826,8 +836,13 @@ class LFCRepo(GitRepo):
                     f"Can't checkout '{f1}'; existing uncached file")
             # Remove the file
             os.remove(fwork)
-        # Copy file
-        copyfile(fcache, fwork)
+        # Create workiing file
+        if mode == 3:
+            # Create link
+            os.symlink(fcache, fwork)
+        else:
+            # Copy file
+            copyfile(fcache, fwork)
         # Make sure working file is older than stub
         set_older(fwork, flfc)
 
@@ -2168,3 +2183,29 @@ def set_older(fname: str, newfile: str):
     # Check if modification needed
     if m1 >= m2:
         os.utime(fname, (m2 - 1, m2 - 1))
+
+
+def set_readonly(fname: str) -> int:
+    r"""Set a file to be read-only, POSIX or Windows
+
+    :Call:
+        >> st_mode = set_readonly(fname)
+    :Inputs:
+        *fname*: :class:`str`
+            Name of file to modify
+    :Outputs:
+        *st_mode*: :class:`int`
+            Updated permissions of *fname*
+    """
+    # Get current permissions
+    current_perms = os.stat(fname).st_mode
+    # Check os
+    if os.name == "posix":
+        perms = current_perms & (
+            ~stat.S_IWUSR & ~stat.S_IWGRP & ~stat.S_IWOTH)
+    else:  # pragma no cover
+        perms = current_perms & ~stat.S_IWRITE
+    # Set permissions
+    os.chmod(fname, perms)
+    # Return permissions
+    return perms

@@ -71,19 +71,20 @@ class LFCArgParser(ArgReader):
 
     # Allowed values
     _optvals = {
-        "mode": (1, 2),
+        "mode": (1, 2, 3),
     }
 
     # Descriptions
     _help_opt = {
         "1": "Limit operations to mode-1 files",
         "2": "Limit operations to mode-2 files",
+        "3": "Create a link to cache file instead of copy",
         "bare": "The new repo will be bare (no working files)",
         "default": "Declare specified remote as default",
         "force": "Overwrite unchached large file or purge file not on remote",
         "fname": "Name of file to display",
         "help": "Display this help message and exit",
-        "mode": "LFC-mode to use {1} | 2",
+        "mode": "LFC-mode to use {1} | 2 | 3",
         "quiet": "Reduce STDOUT",
         "ref": "Git ref, e.g. commit hash or branch; default is ``HEAD``",
         "remote": "Use LFC remote named *REMOTE* (else use default remote)",
@@ -112,6 +113,7 @@ class LFCAddParser(LFCArgParser):
         "mode",
         "1",
         "2",
+        "3",
         "quiet",
     )
 
@@ -448,6 +450,7 @@ class LFCPublishParser(LFCArgParser):
         "mode",
         "1",
         "2",
+        "3",
         "quiet",
     )
 
@@ -516,6 +519,7 @@ class LFCPullParser(LFCArgParser):
         "mode",
         "1",
         "2",
+        "3",
         "force",
         "quiet",
     )
@@ -649,6 +653,7 @@ class LFCPushParser(LFCArgParser):
         "mode",
         "1",
         "2",
+        "3",
         "quiet",
     )
 
@@ -946,6 +951,7 @@ class LFCSetModeParser(LFCArgParser):
         "mode",
         "1",
         "2",
+        "3",
     )
 
     # Positional parameters
@@ -1780,7 +1786,7 @@ def lfc_uncache(parser=None, argv=None):
 
 def _parse_mode(kw):
     # Check for -2 or -1
-    for val in ("1", "2"):
+    for val in ("1", "2", "3"):
         # Transfer it to mode=1 or mode=2
         if val in kw:
             kw["mode"] = int(val)
